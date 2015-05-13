@@ -8,11 +8,11 @@
  *
  * @requires _meta
  * @requires ui.router
- * @requires edudocApp
+ * @requires main
  */
 angular.module('test', [
     '_meta', // auto-generated constant with development metadata
     'ui.router',
-    'edudocApp'
+    'main'
 ]);
 
