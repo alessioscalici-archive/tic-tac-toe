@@ -1,0 +1,13 @@
+logs/*
+!.gitkeep
+node_modules/
+vendor/
+src/vendor/
+tmp
+.DS_Store
+.idea
+build/
+busters.json
+report/
+docs/
+.jshintrc

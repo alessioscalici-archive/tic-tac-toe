@@ -1,0 +1,13 @@
+
+<h2>{{serviceName}}</h2>
+
+
+<ul>
+    <li ng-repeat="test in tests">{{test.name}} <b ng-hide="test.errors.length" style="color:green">Passed</b>
+        <ul ng-show="test.errors.length"  style="color:red">
+            <li ng-repeat="error in test.errors">
+                {{error}}
+            </li>
+        </ul>
+    </li>
+</ul>

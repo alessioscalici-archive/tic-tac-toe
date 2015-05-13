@@ -1,0 +1,22 @@
+{
+  "name": "edudoc-ui",
+  "description": "The Edudoc Angular app",
+  "version": "0.0.0",
+  "homepage": "https://github.com/EdudocLTE/Edudoc-UI",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "angular": "1.2.x",
+    "angular-route": "1.2.x",
+    "angular-loader": "1.2.x",
+    "angular-mocks": "~1.2.x",
+    "html5-boilerplate": "~4.3.0",
+    "angular-ui-router": "~0.2.14",
+    "angular-ui-utils": "bower-validate",
+    "angular-messages": "~1.3.15",
+    "ngstorage": "~0.3.0"
+  },
+  "resolutions": {
+    "angular": "1.3.15"
+  }
+}

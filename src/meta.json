@@ -1,0 +1,12 @@
+{
+  "version": "0.0.0",
+  "name": "edudoc-ui",
+  "description": "The Edudoc Angular app",
+  "license": "MIT",
+  "homepage": "https://github.com/EdudocLTE/Edudoc-UI",
+  "repository": "https://github.com/EdudocLTE/Edudoc-UI",
+  "apps": {
+    "edudocApp": "index.html",
+    "test": "test/index.html"
+  }
+}
