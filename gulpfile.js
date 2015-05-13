@@ -101,7 +101,7 @@ var getModuleDirectDependencies = function(moduleName){
 };
 
 var getModuleDependencies = function(moduleName){
-    
+
     var stack = [moduleName];
     var res = [];
     while (stack.length) {
@@ -172,9 +172,9 @@ gulp.task('template-list', ['js'], function(){
         var deps = getModuleDependencies(appModule);
 
         var entries = [],
-        keys = [],
-        files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.html');
-        
+            keys = [],
+            files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.html');
+
         _.forEach(files, function(filePath){
             var dir = 'src/';
             var relativePath = filePath.substring(filePath.indexOf(dir)+dir.length);
@@ -204,7 +204,7 @@ gulp.task('template-list', ['js'], function(){
             .pipe(rename('T_'+appModule.toUpperCase()+'.js'))
             .pipe(gulp.dest('build/modules/'+appModule+'/constants'));
     };
-    
+
 
     var meta = require('./src/meta.json');
     var streams = [];
@@ -240,8 +240,8 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
 
     var buildAppIndex = function(appModule, targetFile) {
 
-        var meta = require('./src/meta.json');
-        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
+
+
 
         var src = [
             './build/styles/*.css',
@@ -253,7 +253,21 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
 
         src.push('./build/modules/@('+deps.join('|')+')/module.js');        // all the module definitions
         src.push('./build/modules/@('+deps.join('|')+')/**/!(module).js');  // all the module js files
-        
+
+
+        var meta = require('./src/meta.json');
+        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
+
+        var otherMains = _.without(_.pluck(meta.apps, 'module'), appModule);
+        otherMains = _.intersection(otherMains, deps);
+        _.forEach(otherMains, function(otherMain){
+            var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
+            vendor.head.dev = _.uniq(vendor.head.dev.concat(otherVendor.head.dev));
+            vendor.head.prod = _.uniq(vendor.head.prod.concat(otherVendor.head.prod));
+            vendor.body.dev = _.uniq(vendor.body.dev.concat(otherVendor.body.dev));
+            vendor.body.prod = _.uniq(vendor.body.prod.concat(otherVendor.body.prod));
+        });
+
 
         return gulp.src('src/index.html')
             .pipe(rename(targetFile))
@@ -261,10 +275,10 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
             .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', targetFile))
             .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', targetFile))
             .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', targetFile))
-            
+
             .pipe(gulp.dest('build'));
     };
-    
+
 
     var meta = require('./src/meta.json');
     var streams = [];
@@ -433,14 +447,14 @@ var minifyJs = function(){
 };
 
 var minifyHtmlOptions = {
-        empty : false, // - do not remove empty attributes
-            cdata : false, // - do not strip CDATA from scripts
-        comments : false, // - do not remove comments
-        conditionals : true, // - do not remove conditional internet explorer comments
-        spare : false, // - do not remove redundant attributes
-        quotes : false, // - do not remove arbitrary quotes
-        loose : false // - preserve one whitespace
-    };
+    empty : false, // - do not remove empty attributes
+    cdata : false, // - do not strip CDATA from scripts
+    comments : false, // - do not remove comments
+    conditionals : true, // - do not remove conditional internet explorer comments
+    spare : false, // - do not remove redundant attributes
+    quotes : false, // - do not remove arbitrary quotes
+    loose : false // - preserve one whitespace
+};
 
 
 gulp.task('html2js-prod', ['dev'], function(){
@@ -490,7 +504,7 @@ gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
         var deps = getModuleDependencies(appModule);
         src.push('./build/modules/@('+deps.join('|')+')/module.js');
         src.push('./build/modules/@('+deps.join('|')+')/**/!(module).js');
-        
+
 
         return gulp.src(src)
             .pipe(concat(appModule+'.min.js'))
@@ -500,7 +514,7 @@ gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
             .pipe(buster())
             .pipe(gulp.dest('.'));
     };
-    
+
 
     var meta = require('./src/meta.json');
     var streams = [];
@@ -535,13 +549,25 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
 
     var buildAppIndex = function(appModule, targetFile) {
 
-        var meta = require('./src/meta.json');
-        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
-
         var src = [
             './build/css/*.min.css',
             './build/js/' + appModule + '.min.js'
         ];
+
+        var deps = getModuleDependencies(appModule);
+
+        var meta = require('./src/meta.json');
+        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
+
+        var otherMains = _.without(_.pluck(meta.apps, 'module'), appModule);
+        otherMains = _.intersection(otherMains, deps);
+        _.forEach(otherMains, function(otherMain){
+            var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
+            vendor.head.dev = _.uniq(vendor.head.dev.concat(otherVendor.head.dev));
+            vendor.head.prod = _.uniq(vendor.head.prod.concat(otherVendor.head.prod));
+            vendor.body.dev = _.uniq(vendor.body.dev.concat(otherVendor.body.dev));
+            vendor.body.prod = _.uniq(vendor.body.prod.concat(otherVendor.body.prod));
+        });
 
         var str = fs.readFileSync('./busters.json', "utf8");
         var hashes = JSON.parse(str);
@@ -555,7 +581,7 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
             .pipe(minifyHtml(minifyHtmlOptions))
             .pipe(gulp.dest('build'));
     };
-    
+
 
     var meta = require('./src/meta.json');
     var streams = [];
@@ -572,32 +598,32 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
 
 gulp.task('prod', ['js-prod', 'css-prod', 'index-prod', 'dev'], function(version){
 
-        del.sync([
-            'build/styles',
-            'build/modules'
-        ]);
+    del.sync([
+        'build/styles',
+        'build/modules'
+    ]);
 
-        var options = {};
-        if (!version) {
-            options = {
-                preid: 'build',
-                type: 'prerelease'
-            };
-        }
-        else if (version.match(/major|minor|patch|prerelease|build/)) {
-            options = {
-                preid: 'build',
-                type: version
-            };
-        }
-        else if (version.match(/\d{1,3}\.\d{1,3}\.\d{1,3}/)) {
-            options = {
-                version: version
-            };
-        }
-        else {
-            throw "--version (-v) should be major|minor|patch|prerelease|build or a Semver version number (e.g. 1.0.2)";
-        }
+    var options = {};
+    if (!version) {
+        options = {
+            preid: 'build',
+            type: 'prerelease'
+        };
+    }
+    else if (version.match(/major|minor|patch|prerelease|build/)) {
+        options = {
+            preid: 'build',
+            type: version
+        };
+    }
+    else if (version.match(/\d{1,3}\.\d{1,3}\.\d{1,3}/)) {
+        options = {
+            version: version
+        };
+    }
+    else {
+        throw "--version (-v) should be major|minor|patch|prerelease|build or a Semver version number (e.g. 1.0.2)";
+    }
 
     var curStream = gulp.src(['bower.json', 'package.json'])
         .pipe(bump(options))
