@@ -8,11 +8,65 @@
   "apps": [
     {
       "module" : "main",
-      "index" : "index.html"
+      "index" : "index.html",
+      "vendor" : {
+
+        "head" : {
+          "dev" : [
+            "./build/vendor/html5-boilerplate/css/normalize.css",
+            "./build/vendor/html5-boilerplate/css/main.css",
+            "./build/vendor/html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
+          ],
+
+          "prod" : [
+            "./build/vendor/html5-boilerplate/css/normalize.css",
+            "./build/vendor/html5-boilerplate/css/main.css",
+            "./build/vendor/html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
+          ]
+
+        },
+        "body" : {
+
+          "dev" : [
+            "./build/vendor/angular/angular.js",
+            "./build/vendor/angular-ui-router/release/angular-ui-router.js",
+            "./build/vendor/angular-ui-utils/validate.js",
+            "./build/vendor/angular-messages/angular-messages.js",
+            "./build/vendor/ngstorage/ngStorage.js"
+          ],
+
+          "prod" : [
+            "./build/vendor/angular/angular.min.js",
+            "./build/vendor/angular-ui-router/release/angular-ui-router.min.js",
+            "./build/vendor/angular-ui-utils/validate.min.js",
+            "./build/vendor/angular-messages/angular-messages.min.js",
+            "./build/vendor/ngstorage/ngStorage.min.js"
+          ]
+        }
+      }
     },
     {
       "module" : "test",
-      "index" : "test/index.html"
+      "index" : "test/index.html",
+      "vendor" : {
+
+        "head" : {
+          "dev" : [],
+          "prod" : []
+        },
+        "body" : {
+          "dev" : [
+            "./build/vendor/angular/angular.js",
+            "./build/vendor/angular-ui-router/release/angular-ui-router.js",
+            "./build/vendor/ngstorage/ngStorage.js"
+          ],
+          "prod" : [
+            "./build/vendor/angular/angular.min.js",
+            "./build/vendor/angular-ui-router/release/angular-ui-router.min.js",
+            "./build/vendor/ngstorage/ngStorage.min.js"
+          ]
+        }
+      }
     }
   ]
 }

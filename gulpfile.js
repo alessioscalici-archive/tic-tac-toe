@@ -1,4 +1,5 @@
 var gulp = require('gulp-param')(require('gulp'), process.argv),
+    util = require('gulp-util'),
     bump = require('gulp-bump'),
     fs = require('fs'),
     merge = require('merge-stream'),
@@ -30,8 +31,6 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
 
 
 
-var vendor = require('./src/vendor.json');
-
 
 
 var getInjectPrefix = function(targetFile) {
@@ -44,6 +43,9 @@ var getInjectPrefix = function(targetFile) {
 
 
 var injectIntoIndex = function(srcArray, starttag, targetFile, hashes) {
+
+    if (!srcArray || !srcArray.length)
+        return util.noop();
 
     var streamArray = _.map(srcArray, function(glob){
         return gulp.src(glob, {read:false});
@@ -238,6 +240,8 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
 
     var buildAppIndex = function(appModule, targetFile) {
 
+        var meta = require('./src/meta.json');
+        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
 
         var src = [
             './build/styles/*.css',
@@ -303,6 +307,8 @@ gulp.task('dev', ['build', 'meta-align', 'ngdoc', 'karma']);
 
 gulp.task('karma', ['build'],function(){
 
+    var meta = require('./src/meta.json');
+    var vendor = _.where(meta.apps, { module : 'main'})[0].vendor;
 
     var vendorFiles = vendor.head.dev.concat(vendor.body.dev);
 
@@ -529,6 +535,8 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
 
     var buildAppIndex = function(appModule, targetFile) {
 
+        var meta = require('./src/meta.json');
+        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
 
         var src = [
             './build/css/*.min.css',
