@@ -207,8 +207,9 @@ gulp.task('template-list', ['js'], function(){
     var meta = require('./src/meta.json');
     var streams = [];
 
-    _.forEach(meta.apps, function(fileName, module){
-        streams.push(process(module, fileName));
+    _.forEach(meta.apps, function(app){
+
+        streams.push(process(app.module, app.index));
     });
 
     return merge.apply(this, streams);
@@ -264,8 +265,8 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
     var meta = require('./src/meta.json');
     var streams = [];
 
-    _.forEach(meta.apps, function(fileName, module){
-        streams.push(buildAppIndex(module, fileName));
+    _.forEach(meta.apps, function(app){
+        streams.push(buildAppIndex(app.module, app.index));
     });
 
     return merge.apply(this, streams);
@@ -463,8 +464,8 @@ gulp.task('html2js-prod', ['dev'], function(){
     var meta = require('./src/meta.json');
     var streams = [];
 
-    _.forEach(meta.apps, function(fileName, module){
-        streams.push(process(module, fileName));
+    _.forEach(meta.apps, function(app){
+        streams.push(process(app.module, app.index));
     });
 
     return merge.apply(this, streams);
@@ -498,8 +499,8 @@ gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
     var meta = require('./src/meta.json');
     var streams = [];
 
-    _.forEach(meta.apps, function(fileName, module){
-        streams.push(buildAppIndex(module, fileName));
+    _.forEach(meta.apps, function(app){
+        streams.push(buildAppIndex(app.module, app.index));
     });
 
     return merge.apply(this, streams);
@@ -551,8 +552,8 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
     var meta = require('./src/meta.json');
     var streams = [];
 
-    _.forEach(meta.apps, function(fileName, module){
-        streams.push(buildAppIndex(module, fileName));
+    _.forEach(meta.apps, function(app){
+        streams.push(buildAppIndex(app.module, app.index));
     });
 
     return merge.apply(this, streams);

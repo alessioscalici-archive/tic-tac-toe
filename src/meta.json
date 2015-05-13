@@ -5,8 +5,14 @@
   "license": "MIT",
   "homepage": "https://github.com/sefvef/ui-base",
   "repository": "https://github.com/sefvef/ui-base",
-  "apps": {
-    "main": "index.html",
-    "test": "test/index.html"
-  }
+  "apps": [
+    {
+      "module" : "main",
+      "index" : "index.html"
+    },
+    {
+      "module" : "test",
+      "index" : "test/index.html"
+    }
+  ]
 }
