@@ -213,10 +213,10 @@ var task = {
 
     templateList : function(){
 
-        var process = function(appModule, targetFile) {
+        var process = function(app) {
 
-            var prefix = getInjectPrefix(targetFile);
-            var deps = getModuleDependencies(appModule);
+            var prefix = getInjectPrefix(app.index);
+            var deps = getModuleDependencies(app.module);
 
             var entries = [],
                 keys = [],
@@ -244,25 +244,25 @@ var task = {
 
             return gulp.src('src/_templ.js')
                 .pipe(replace('/*##TEMPLATE_LIST##*/', entries.join(',\n')))
-                .pipe(replace('##MODULE##', appModule))
-                .pipe(replace('##UPPER_MODULE##', appModule.toUpperCase()))
-                .pipe(rename('T_'+appModule.toUpperCase()+'.js'))
-                .pipe(gulp.dest('build/modules/'+appModule+'/constants'));
+                .pipe(replace('##MODULE##', app.module))
+                .pipe(replace('##UPPER_MODULE##', app.module.toUpperCase()))
+                .pipe(rename('T_'+app.module.toUpperCase()+'.js'))
+                .pipe(gulp.dest('build/modules/'+app.module+'/constants'));
         };
 
         var meta = require('./src/meta.json');
         var streams = [];
         _.forEach(meta.apps, function(app){
-            streams.push(process(app.module, app.index));
+            streams.push(process(app));
         });
         return merge.apply(this, streams);
     },
 
     index : function(){
 
-        var process = function(appModule, targetFile) {
+        var process = function(app) {
 
-            var deps = getModuleDependencies(appModule);
+            var deps = getModuleDependencies(app.module);
 
             var src = [
                 './build/modules/@('+deps.join('|')+')/*.css',
@@ -273,9 +273,9 @@ var task = {
 
 
             var meta = require('./src/meta.json');
-            var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
+            var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
 
-            var otherMains = _.without(_.pluck(meta.apps, 'module'), appModule);
+            var otherMains = _.without(_.pluck(meta.apps, 'module'), app.module);
             otherMains = _.intersection(otherMains, deps);
             _.forEach(otherMains, function(otherMain){
                 var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
@@ -287,11 +287,11 @@ var task = {
 
 
             return gulp.src('src/index.html')
-                .pipe(rename(targetFile))
-                .pipe(replace('##APP_MAIN_MODULE##', appModule))
-                .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', targetFile))
-                .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', targetFile))
-                .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', targetFile))
+                .pipe(rename(app.index))
+                .pipe(replace('##APP_MAIN_MODULE##', app.module))
+                .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', app.index))
+                .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', app.index))
+                .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', app.index))
 
                 .pipe(gulp.dest('build'));
         };
@@ -300,7 +300,7 @@ var task = {
         var meta = require('./src/meta.json');
         var streams = [];
         _.forEach(meta.apps, function(app){
-            streams.push(process(app.module, app.index));
+            streams.push(process(app));
         });
         return merge.apply(this, streams);
     }
@@ -471,32 +471,32 @@ var minifyHtmlOptions = {
 gulp.task('html2js-prod', ['dev'], function(){
 
 
-    var process = function(appModule, targetFile) {
+    var process = function(app) {
 
 
-        var deps = getModuleDependencies(appModule);
+        var deps = getModuleDependencies(app.module);
         var src = './build/modules/@('+deps.join('|')+')/**/*.html';
 
-        var suffix = targetFile.indexOf('/') ? targetFile.substring(0, targetFile.lastIndexOf('/')) : '';
+        var suffix = app.index.indexOf('/') ? app.index.substring(0, app.index.lastIndexOf('/')) : '';
         var baseDir = 'build' + (suffix.length ? '/'+suffix : '');
 
 
         return gulp.src(src)
             .pipe(minifyHtml(minifyHtmlOptions))
             .pipe(html2js({
-                outputModuleName : appModule,
+                outputModuleName : app.module,
                 singleModule : true,
                 base : baseDir
             }))
             .pipe(concat('templates.min.js'))
-            .pipe(gulp.dest('build/modules/'+appModule+'/html2js'));
+            .pipe(gulp.dest('build/modules/'+app.module+'/html2js'));
     };
 
     var meta = require('./src/meta.json');
     var streams = [];
 
     _.forEach(meta.apps, function(app){
-        streams.push(process(app.module, app.index));
+        streams.push(process(app));
     });
 
     return merge.apply(this, streams);
@@ -506,19 +506,19 @@ gulp.task('html2js-prod', ['dev'], function(){
 
 gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
 
-    var buildAppIndex = function(appModule, targetFile) {
+    var buildAppIndex = function(app) {
 
 
         var src = [];
 
 
-        var deps = getModuleDependencies(appModule);
+        var deps = getModuleDependencies(app.module);
         src.push('./build/modules/@('+deps.join('|')+')/module.js');
         src.push('./build/modules/@('+deps.join('|')+')/**/!(module).js');
 
 
         return gulp.src(src)
-            .pipe(concat(appModule+'.min.js'))
+            .pipe(concat(app.module+'.min.js'))
             .pipe(gulp.dest('build/js'))
             .pipe(minifyJs())
             .pipe(gulp.dest('build/js'))
@@ -531,7 +531,7 @@ gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
     var streams = [];
 
     _.forEach(meta.apps, function(app){
-        streams.push(buildAppIndex(app.module, app.index));
+        streams.push(buildAppIndex(app));
     });
 
     return merge.apply(this, streams);
@@ -541,16 +541,16 @@ gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
 
 gulp.task('css-prod', ['dev'], function(){
 
-    var process = function(appModule, targetFile) {
+    var process = function(app) {
 
-        var deps = getModuleDependencies(appModule);
+        var deps = getModuleDependencies(app.module);
 
         var src = [
             './build/modules/@('+deps.join('|')+')/**/*.css'
         ];
 
         return gulp.src(src)
-            .pipe(concat(appModule+'.min.css'))
+            .pipe(concat(app.module+'.min.css'))
             .pipe(minifyCss())
             .pipe(gulp.dest('build/css'))
             .pipe(buster())
@@ -562,7 +562,7 @@ gulp.task('css-prod', ['dev'], function(){
     var streams = [];
 
     _.forEach(meta.apps, function(app){
-        streams.push(process(app.module, app.index));
+        streams.push(process(app));
     });
 
     return merge.apply(this, streams);
@@ -574,19 +574,19 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
 
 
 
-    var buildAppIndex = function(appModule, targetFile) {
+    var buildAppIndex = function(app) {
 
         var src = [
-            './build/css/' + appModule + '.min.css',
-            './build/js/' + appModule + '.min.js'
+            './build/css/' + app.module + '.min.css',
+            './build/js/' + app.module + '.min.js'
         ];
 
-        var deps = getModuleDependencies(appModule);
+        var deps = getModuleDependencies(app.module);
 
         var meta = require('./src/meta.json');
-        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
+        var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
 
-        var otherMains = _.without(_.pluck(meta.apps, 'module'), appModule);
+        var otherMains = _.without(_.pluck(meta.apps, 'module'), app.module);
         otherMains = _.intersection(otherMains, deps);
         _.forEach(otherMains, function(otherMain){
             var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
@@ -600,11 +600,11 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
         var hashes = JSON.parse(str);
 
         return gulp.src('src/index.html')
-            .pipe(rename(targetFile))
-            .pipe(replace('##APP_MAIN_MODULE##', appModule))
-            .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', targetFile, hashes))
-            .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', targetFile, hashes))
-            .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', targetFile, hashes))
+            .pipe(rename(app.index))
+            .pipe(replace('##APP_MAIN_MODULE##', app.module))
+            .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', app.index, hashes))
+            .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', app.index, hashes))
+            .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', app.index, hashes))
             .pipe(minifyHtml(minifyHtmlOptions))
             .pipe(gulp.dest('build'));
     };
@@ -614,7 +614,7 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
     var streams = [];
 
     _.forEach(meta.apps, function(app){
-        streams.push(buildAppIndex(app.module, app.index));
+        streams.push(buildAppIndex(app));
     });
 
     return merge.apply(this, streams);
