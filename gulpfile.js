@@ -26,6 +26,7 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     html2js = require('gulp-html2js'),
     series = require('stream-series'),
     esprima = require('esprima'),
+    watch = require('gulp-watch'),
     rename = require('gulp-rename')
     ;
 
@@ -657,4 +658,32 @@ gulp.task('ngdoc', function() {
         }))
         .pipe(gulp.dest('docs'));
 });
+
+
+
+
+//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
+//                                     WATCH TASKS
+//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
+
+// works in dev mode
+gulp.task('watch', ['dev'], function(){
+
+    watch('src/**/*.less')
+        .pipe(less())
+        .pipe(gulp.dest('build/styles'));
+
+    watch('src/modules/**/*.js')
+        .pipe(gulp.dest('build/modules'));
+
+    watch('src/modules/**/*.html')
+        .pipe(gulp.dest('build/modules'));
+
+    watch('src/assets/**/*')
+        .pipe(gulp.dest('build/assets'));
+
+});
+
+
+
 
