@@ -80,9 +80,9 @@ var injectIntoIndex = function(srcArray, starttag, targetFile, hashes) {
 
 
 
+
 var getModuleDirectDependencies = function(moduleName){
     var getArray = function (node) {
-
         if (node.type==='ArrayExpression')
             return _.pluck(node.elements, 'value');
 
@@ -101,7 +101,11 @@ var getModuleDirectDependencies = function(moduleName){
     return getArray(tree);
 };
 
+var moduledepMap = {};
 var getModuleDependencies = function(moduleName){
+
+    if (moduledepMap[moduleName])
+        return moduledepMap[moduleName];
 
     var stack = [moduleName];
     var res = [];
@@ -118,6 +122,7 @@ var getModuleDependencies = function(moduleName){
             stack.push(dirDeps[i]);
         }
     }
+    moduledepMap[moduleName] = res;
     return res;
 };
 
@@ -252,8 +257,6 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
             './build/modules/@('+deps.join('|')+')/**/!(module).js'         // then all the module js files
         ];
 
-        src.push('./build/modules/@('+deps.join('|')+')/module.js');        // all the module definitions
-        src.push('./build/modules/@('+deps.join('|')+')/**/!(module).js');  // all the module js files
 
 
         var meta = require('./src/meta.json');
