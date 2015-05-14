@@ -34,7 +34,6 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
 
 
 
-
 var getInjectPrefix = function(targetFile) {
     var levels = targetFile.replace(/^\.?\//,'').split('/').length-1;
     var prefix = '';
@@ -129,6 +128,67 @@ var getModuleDependencies = function(moduleName){
 
 
 
+var forEachApp = function(func){
+    var meta = require('./src/meta.json');
+    var streams = [];
+    _.forEach(meta.apps, function(app){
+        streams.push(func(app));
+    });
+    return merge.apply(this, streams);
+};
+
+
+
+var uglifyOptions = {
+        mangle : ['angular', 'module'],
+        output : {
+            indent_start  : 0,     // start indentation on every line (only when `beautify`)
+            indent_level  : 4,     // indentation level (only when `beautify`)
+            quote_keys    : false, // quote all keys in object literals?
+            space_colon   : true,  // add a space after colon signs?
+            ascii_only    : false, // output ASCII-safe? (encodes Unicode characters as ASCII)
+            inline_script : false, // escape "</script"?
+            width         : 80,    // informative maximum line width (for beautified output)
+            max_line_len  : 32000, // maximum line length (for non-beautified output)
+            beautify      : false, // beautify output?
+            source_map    : null,  // output a source map
+            bracketize    : false, // use brackets every time?
+            comments      : false, // output comments?
+            semicolons    : true  // use semicolons to separate statements? (otherwise, newlines)
+        },
+        compress : {
+            sequences     : true,  // join consecutive statemets with the “comma operator”
+            properties    : true,  // optimize property access: a["foo"] → a.foo
+            dead_code     : true,  // discard unreachable code
+            drop_debugger : true,  // discard “debugger” statements
+            unsafe        : false, // some unsafe optimizations (see below)
+            conditionals  : true,  // optimize if-s and conditional expressions
+            comparisons   : true,  // optimize comparisons
+            evaluate      : true,  // evaluate constant expressions
+            booleans      : true,  // optimize boolean expressions
+            loops         : true,  // optimize loops
+            unused        : true,  // drop unused variables/functions
+            hoist_funs    : true,  // hoist function declarations
+            hoist_vars    : false, // hoist variable declarations
+            if_return     : true,  // optimize if-s followed by return/continue
+            join_vars     : true,  // join var declarations
+            cascade       : true,  // try to cascade `right` into `left` in sequences
+            side_effects  : true,  // drop side-effect-free statements
+            warnings      : true,  // warn about potentially dangerous optimizations/code
+            global_defs   : {}     // global definitions
+        }
+    };
+
+var minifyHtmlOptions = {
+    empty : false, // - do not remove empty attributes
+    cdata : false, // - do not strip CDATA from scripts
+    comments : false, // - do not remove comments
+    conditionals : true, // - do not remove conditional internet explorer comments
+    spare : false, // - do not remove redundant attributes
+    quotes : false, // - do not remove arbitrary quotes
+    loose : false // - preserve one whitespace
+};
+
 
 //####################################################################################################################################//
 //                                                          TASK FUNCTIONS
@@ -147,19 +207,19 @@ var task = {
             .pipe(gulp.dest('build/vendor'));
     },
 
-
     cleanAssets : function(){
         return del.sync(['build/assets/**']);
     },
+
     assets : function(){
         return gulp.src(['src/assets/**'])
             .pipe(gulp.dest('build/assets'));
     },
 
-
     cleanLess : function(){
         return del.sync(['build/modules/**/*.less']);
     },
+
     less : function(){
         return gulp.src('src/modules/**/*.less')
             .pipe(plumber())
@@ -168,14 +228,67 @@ var task = {
             .pipe(gulp.dest('build/modules'));
     },
 
+    cssProd : function(){
+        var process = function(app) {
+            var deps = getModuleDependencies(app.module);
+            var src = [
+                './build/modules/@('+deps.join('|')+')/**/*.css'
+            ];
+            return gulp.src(src)
+                .pipe(concat(app.module+'.min.css'))
+                .pipe(minifyCss())
+                .pipe(gulp.dest('build/css'))
+                .pipe(buster())
+                .pipe(gulp.dest('.'));
+        };
+        return forEachApp(process);
+    },
 
     cleanJs : function(){
         return del.sync(['build/modules/**/!(*.test).js']);
     },
+
     js : function(){
         return gulp.src('src/modules/**/!(*.test).js')
             .pipe(ngAnnotate())
             .pipe(gulp.dest('build/modules'));
+    },
+
+    jsProd : function(){
+        var process = function(app) {
+            var deps = getModuleDependencies(app.module);
+            var src = [
+                './build/modules/@('+deps.join('|')+')/module.js',
+                './build/modules/@('+deps.join('|')+')/**/!(module).js'
+                ];
+            return gulp.src(src)
+                .pipe(concat(app.module+'.min.js'))
+                .pipe(gulp.dest('build/js'))
+                .pipe(uglify(uglifyOptions))
+                .pipe(gulp.dest('build/js'))
+                .pipe(buster())
+                .pipe(gulp.dest('.'));
+        };
+        return forEachApp(process);
+    },
+
+    html2jsProd : function(){
+        var process = function(app) {
+            var deps = getModuleDependencies(app.module);
+            var src = './build/modules/@('+deps.join('|')+')/**/*.html';
+            var suffix = app.index.indexOf('/') ? app.index.substring(0, app.index.lastIndexOf('/')) : '';
+            var baseDir = 'build' + (suffix.length ? '/'+suffix : '');
+            return gulp.src(src)
+                .pipe(minifyHtml(minifyHtmlOptions))
+                .pipe(html2js({
+                    outputModuleName : app.module,
+                    singleModule : true,
+                    base : baseDir
+                }))
+                .pipe(concat('templates.min.js'))
+                .pipe(gulp.dest('build/modules/'+app.module+'/html2js'));
+        };
+        return forEachApp(process);
     },
 
 
@@ -250,12 +363,8 @@ var task = {
                 .pipe(gulp.dest('build/modules/'+app.module+'/constants'));
         };
 
-        var meta = require('./src/meta.json');
-        var streams = [];
-        _.forEach(meta.apps, function(app){
-            streams.push(process(app));
-        });
-        return merge.apply(this, streams);
+
+        return forEachApp(process);
     },
 
     index : function(){
@@ -297,16 +406,54 @@ var task = {
         };
 
 
-        var meta = require('./src/meta.json');
-        var streams = [];
-        _.forEach(meta.apps, function(app){
-            streams.push(process(app));
-        });
-        return merge.apply(this, streams);
+        return forEachApp(process);
+    },
+
+    indexProd : function(){
+
+        var process = function(app) {
+
+            var src = [
+                './build/css/' + app.module + '.min.css',
+                './build/js/' + app.module + '.min.js'
+            ];
+
+            var deps = getModuleDependencies(app.module);
+
+            var meta = require('./src/meta.json');
+            var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
+
+            var otherMains = _.without(_.pluck(meta.apps, 'module'), app.module);
+            otherMains = _.intersection(otherMains, deps);
+            _.forEach(otherMains, function(otherMain){
+                var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
+                vendor.head.dev = _.uniq(vendor.head.dev.concat(otherVendor.head.dev));
+                vendor.head.prod = _.uniq(vendor.head.prod.concat(otherVendor.head.prod));
+                vendor.body.dev = _.uniq(vendor.body.dev.concat(otherVendor.body.dev));
+                vendor.body.prod = _.uniq(vendor.body.prod.concat(otherVendor.body.prod));
+            });
+
+            var str = fs.readFileSync('./busters.json', "utf8");
+            var hashes = JSON.parse(str);
+
+            return gulp.src('src/index.html')
+                .pipe(rename(app.index))
+                .pipe(replace('##APP_MAIN_MODULE##', app.module))
+                .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', app.index, hashes))
+                .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', app.index, hashes))
+                .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', app.index, hashes))
+                .pipe(minifyHtml(minifyHtmlOptions))
+                .pipe(gulp.dest('build'));
+        };
+
+        return forEachApp(process);
     }
 };
 
 
+//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
+//                                         BUILD TASKS
+//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
 
 gulp.task('clean', ['jshint'], task.clean);
 gulp.task('vendor', ['clean'], task.vendor);
@@ -320,13 +467,79 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
 gulp.task('meta', ['js'], task.meta);
 gulp.task('meta-align', ['js'], task.metaAlign);
 
-
-
 gulp.task('build', ['clean', 'index', 'vendor', 'less', 'templates', 'template-list', 'js']);
 gulp.task('dev', ['build', 'meta-align', 'ngdoc', 'karma']);
 
 
-// ============================= TEST =============================== //
+    // PROD specific
+
+gulp.task('html2js-prod', ['dev'], task.html2jsProd);
+gulp.task('js-prod', ['html2js-prod', 'dev'], task.jsProd);
+gulp.task('css-prod', ['dev'], task.cssProd);
+gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'], task.indexProd);
+gulp.task('prod', ['js-prod', 'css-prod', 'index-prod', 'dev'], function(version){
+
+    del.sync([
+        'build/styles',
+        'build/modules'
+    ]);
+
+    var options = {};
+    if (!version) {
+        options = {
+            preid: 'build',
+            type: 'prerelease'
+        };
+    }
+    else if (version.match(/major|minor|patch|prerelease|build/)) {
+        options = {
+            preid: 'build',
+            type: version
+        };
+    }
+    else if (version.match(/\d{1,3}\.\d{1,3}\.\d{1,3}/)) {
+        options = {
+            version: version
+        };
+    }
+    else {
+        throw "--version (-v) should be major|minor|patch|prerelease|build or a Semver version number (e.g. 1.0.2)";
+    }
+
+    var curStream = gulp.src(['bower.json', 'package.json'])
+        .pipe(bump(options))
+        .pipe(gulp.dest('.'));
+
+    var srcStream = gulp.src(['src/meta.json'])
+        .pipe(bump(options))
+        .pipe(gulp.dest('src'));
+
+    return merge (curStream, srcStream);
+});
+
+
+
+
+//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
+//                                     TEST / REPORTS TASKS
+//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
+
+
+gulp.task('ngdoc', function() {
+
+    var testFiles = [
+        '!src/**/*.test.js', // exclude test js files
+        'src/modules/*.js',
+        'src/modules/**/*.js'
+    ];
+
+    return gulp.src(testFiles)
+        .pipe(ngdoc.process({
+            html5Mode : false
+        }))
+        .pipe(gulp.dest('docs'));
+});
+
 
 
 gulp.task('karma', ['build'],function(){
@@ -407,283 +620,6 @@ gulp.task('jshint', function() {
         .pipe(jshint.reporter('cool-reporter'))
         .pipe(jshint.reporter('fail'));
 });
-
-
-
-
-//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
-//                                         PROD TASKS
-//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
-
-var minifyJs = function(){
-    return uglify({
-        mangle : ['angular', 'module'],
-        output : {
-            indent_start  : 0,     // start indentation on every line (only when `beautify`)
-            indent_level  : 4,     // indentation level (only when `beautify`)
-            quote_keys    : false, // quote all keys in object literals?
-            space_colon   : true,  // add a space after colon signs?
-            ascii_only    : false, // output ASCII-safe? (encodes Unicode characters as ASCII)
-            inline_script : false, // escape "</script"?
-            width         : 80,    // informative maximum line width (for beautified output)
-            max_line_len  : 32000, // maximum line length (for non-beautified output)
-            beautify      : false, // beautify output?
-            source_map    : null,  // output a source map
-            bracketize    : false, // use brackets every time?
-            comments      : false, // output comments?
-            semicolons    : true  // use semicolons to separate statements? (otherwise, newlines)
-        },
-        compress : {
-            sequences     : true,  // join consecutive statemets with the “comma operator”
-            properties    : true,  // optimize property access: a["foo"] → a.foo
-            dead_code     : true,  // discard unreachable code
-            drop_debugger : true,  // discard “debugger” statements
-            unsafe        : false, // some unsafe optimizations (see below)
-            conditionals  : true,  // optimize if-s and conditional expressions
-            comparisons   : true,  // optimize comparisons
-            evaluate      : true,  // evaluate constant expressions
-            booleans      : true,  // optimize boolean expressions
-            loops         : true,  // optimize loops
-            unused        : true,  // drop unused variables/functions
-            hoist_funs    : true,  // hoist function declarations
-            hoist_vars    : false, // hoist variable declarations
-            if_return     : true,  // optimize if-s followed by return/continue
-            join_vars     : true,  // join var declarations
-            cascade       : true,  // try to cascade `right` into `left` in sequences
-            side_effects  : true,  // drop side-effect-free statements
-            warnings      : true,  // warn about potentially dangerous optimizations/code
-            global_defs   : {}     // global definitions
-        }
-    });
-};
-
-var minifyHtmlOptions = {
-    empty : false, // - do not remove empty attributes
-    cdata : false, // - do not strip CDATA from scripts
-    comments : false, // - do not remove comments
-    conditionals : true, // - do not remove conditional internet explorer comments
-    spare : false, // - do not remove redundant attributes
-    quotes : false, // - do not remove arbitrary quotes
-    loose : false // - preserve one whitespace
-};
-
-
-gulp.task('html2js-prod', ['dev'], function(){
-
-
-    var process = function(app) {
-
-
-        var deps = getModuleDependencies(app.module);
-        var src = './build/modules/@('+deps.join('|')+')/**/*.html';
-
-        var suffix = app.index.indexOf('/') ? app.index.substring(0, app.index.lastIndexOf('/')) : '';
-        var baseDir = 'build' + (suffix.length ? '/'+suffix : '');
-
-
-        return gulp.src(src)
-            .pipe(minifyHtml(minifyHtmlOptions))
-            .pipe(html2js({
-                outputModuleName : app.module,
-                singleModule : true,
-                base : baseDir
-            }))
-            .pipe(concat('templates.min.js'))
-            .pipe(gulp.dest('build/modules/'+app.module+'/html2js'));
-    };
-
-    var meta = require('./src/meta.json');
-    var streams = [];
-
-    _.forEach(meta.apps, function(app){
-        streams.push(process(app));
-    });
-
-    return merge.apply(this, streams);
-
-});
-
-
-gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
-
-    var buildAppIndex = function(app) {
-
-
-        var src = [];
-
-
-        var deps = getModuleDependencies(app.module);
-        src.push('./build/modules/@('+deps.join('|')+')/module.js');
-        src.push('./build/modules/@('+deps.join('|')+')/**/!(module).js');
-
-
-        return gulp.src(src)
-            .pipe(concat(app.module+'.min.js'))
-            .pipe(gulp.dest('build/js'))
-            .pipe(minifyJs())
-            .pipe(gulp.dest('build/js'))
-            .pipe(buster())
-            .pipe(gulp.dest('.'));
-    };
-
-
-    var meta = require('./src/meta.json');
-    var streams = [];
-
-    _.forEach(meta.apps, function(app){
-        streams.push(buildAppIndex(app));
-    });
-
-    return merge.apply(this, streams);
-
-});
-
-
-gulp.task('css-prod', ['dev'], function(){
-
-    var process = function(app) {
-
-        var deps = getModuleDependencies(app.module);
-
-        var src = [
-            './build/modules/@('+deps.join('|')+')/**/*.css'
-        ];
-
-        return gulp.src(src)
-            .pipe(concat(app.module+'.min.css'))
-            .pipe(minifyCss())
-            .pipe(gulp.dest('build/css'))
-            .pipe(buster())
-            .pipe(gulp.dest('.'));
-    };
-
-
-    var meta = require('./src/meta.json');
-    var streams = [];
-
-    _.forEach(meta.apps, function(app){
-        streams.push(process(app));
-    });
-
-    return merge.apply(this, streams);
-
-});
-
-
-gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
-
-
-
-    var buildAppIndex = function(app) {
-
-        var src = [
-            './build/css/' + app.module + '.min.css',
-            './build/js/' + app.module + '.min.js'
-        ];
-
-        var deps = getModuleDependencies(app.module);
-
-        var meta = require('./src/meta.json');
-        var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
-
-        var otherMains = _.without(_.pluck(meta.apps, 'module'), app.module);
-        otherMains = _.intersection(otherMains, deps);
-        _.forEach(otherMains, function(otherMain){
-            var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
-            vendor.head.dev = _.uniq(vendor.head.dev.concat(otherVendor.head.dev));
-            vendor.head.prod = _.uniq(vendor.head.prod.concat(otherVendor.head.prod));
-            vendor.body.dev = _.uniq(vendor.body.dev.concat(otherVendor.body.dev));
-            vendor.body.prod = _.uniq(vendor.body.prod.concat(otherVendor.body.prod));
-        });
-
-        var str = fs.readFileSync('./busters.json', "utf8");
-        var hashes = JSON.parse(str);
-
-        return gulp.src('src/index.html')
-            .pipe(rename(app.index))
-            .pipe(replace('##APP_MAIN_MODULE##', app.module))
-            .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', app.index, hashes))
-            .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', app.index, hashes))
-            .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', app.index, hashes))
-            .pipe(minifyHtml(minifyHtmlOptions))
-            .pipe(gulp.dest('build'));
-    };
-
-
-    var meta = require('./src/meta.json');
-    var streams = [];
-
-    _.forEach(meta.apps, function(app){
-        streams.push(buildAppIndex(app));
-    });
-
-    return merge.apply(this, streams);
-
-
-});
-
-
-gulp.task('prod', ['js-prod', 'css-prod', 'index-prod', 'dev'], function(version){
-
-    del.sync([
-        'build/styles',
-        'build/modules'
-    ]);
-
-    var options = {};
-    if (!version) {
-        options = {
-            preid: 'build',
-            type: 'prerelease'
-        };
-    }
-    else if (version.match(/major|minor|patch|prerelease|build/)) {
-        options = {
-            preid: 'build',
-            type: version
-        };
-    }
-    else if (version.match(/\d{1,3}\.\d{1,3}\.\d{1,3}/)) {
-        options = {
-            version: version
-        };
-    }
-    else {
-        throw "--version (-v) should be major|minor|patch|prerelease|build or a Semver version number (e.g. 1.0.2)";
-    }
-
-    var curStream = gulp.src(['bower.json', 'package.json'])
-        .pipe(bump(options))
-        .pipe(gulp.dest('.'));
-
-    var srcStream = gulp.src(['src/meta.json'])
-        .pipe(bump(options))
-        .pipe(gulp.dest('src'));
-
-    return merge (curStream, srcStream);
-});
-
-
-//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
-//                                     DOCUMENTATION TASKS
-//0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
-
-
-gulp.task('ngdoc', function() {
-
-    var testFiles = [
-        '!src/**/*.test.js', // exclude test js files
-        'src/modules/*.js',
-        'src/modules/**/*.js'
-    ];
-
-    return gulp.src(testFiles)
-        .pipe(ngdoc.process({
-            html5Mode : false
-        }))
-        .pipe(gulp.dest('docs'));
-});
-
 
 
 
