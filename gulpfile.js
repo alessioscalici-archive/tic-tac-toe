@@ -697,9 +697,9 @@ gulp.task('watch', ['build'], function(){
 
     watch('src/**/*.less', function(){
         try {
-            task.cleanLess();
-            task.less();
-            task.index();
+        //    task.cleanLess();
+            task.less()
+            .on('end', task.index)
         } catch (e) {
             console.log(e);
         }
@@ -708,9 +708,10 @@ gulp.task('watch', ['build'], function(){
 
     watch('src/modules/**/*.js', function(){
         try {
-            task.cleanJs();
-            task.js();
-            task.index();
+           // task.cleanJs();
+            task.js()
+        //    .on('end', task.templateList)
+            .on('end', task.index)
         } catch (e) {
             console.log(e);
         }
@@ -719,10 +720,10 @@ gulp.task('watch', ['build'], function(){
 
     watch('src/modules/**/*.html', function(){
         try {
-            task.cleanTemplates();
-            task.templates();
-            task.templateList();
-            task.index();
+         //   task.cleanTemplates();
+            task.templates()
+            .on('end', task.templateList)
+            .on('end', task.index)
         } catch (e) {
             console.log(e);
         }
@@ -731,7 +732,7 @@ gulp.task('watch', ['build'], function(){
 
     watch('src/assets/**/*', function(){
         try {
-            task.cleanAssets();
+        //    task.cleanAssets();
             task.assets();
         } catch (e) {
             console.log(e);
