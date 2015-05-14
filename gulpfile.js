@@ -13,7 +13,7 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     del = require('del'),
     watch = require('gulp-watch'),
     karma = require('gulp-karma'),
-    plato = require('gulp-plato'),
+    plato = require('plato'),
     jshint = require('gulp-jshint'),
     jscs = require('gulp-jscs'),
     jedit = require('gulp-json-editor'),
@@ -366,11 +366,9 @@ gulp.task('plato', function() {
         '!src/**/*.test.js', // exclude test js files
         'src/modules/*.js',
         'src/modules/**/*.js'
-
     ];
 
-    return gulp.src(testFiles)
-        .pipe(plato('./report/complexity', {
+    var options = {
             jshint: {
                 options: {
                     strict: true
@@ -379,7 +377,10 @@ gulp.task('plato', function() {
             complexity: {
                 trycatch: true
             }
-        }));
+        };
+
+    return plato.inspect(testFiles, './report/complexity', options, function callback(){});
+
 });
 
 gulp.task('jshint', function() {
