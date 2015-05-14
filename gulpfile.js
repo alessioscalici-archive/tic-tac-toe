@@ -27,6 +27,7 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     series = require('stream-series'),
     esprima = require('esprima'),
     watch = require('gulp-watch'),
+    plumber = require('gulp-plumber'),
     rename = require('gulp-rename')
     ;
 
@@ -129,194 +130,199 @@ var getModuleDependencies = function(moduleName){
 
 
 
-gulp.task('clean', ['jshint'], function(){
-    return del.sync(['build']);
-});
-
-
-gulp.task('vendor', ['clean'], function(){
-    return gulp.src(['src/vendor/**'])
-        .pipe(gulp.dest('build/vendor'));
-});
-
-gulp.task('assets', ['clean'], function(){
-    return gulp.src(['src/assets/**'])
-        .pipe(gulp.dest('build/assets'));
-});
-
-
-gulp.task('less', ['clean'],function(){
-    return gulp.src([
-        'src/modules/**/*.less'
-    ])
-        .pipe(less())
-        .pipe(gulp.dest('build/modules'));
-});
-
-
-gulp.task('js', ['clean'],function(){
-
-    return gulp.src([
-        '!./**/*.test.js',
-        'src/modules/**/*.js'
-    ])
-        .pipe(ngAnnotate())
-        .pipe(gulp.dest('build/modules'));
-
-});
+//####################################################################################################################################//
+//                                                          TASK FUNCTIONS
+//####################################################################################################################################//
 
 
 
-gulp.task('template-list', ['js'], function(){
+var task = {
+
+    clean : function(){
+        return del.sync(['build']);
+    },
+
+    vendor : function(){
+        return gulp.src(['src/vendor/**'])
+            .pipe(gulp.dest('build/vendor'));
+    },
 
 
-    var process = function(appModule, targetFile) {
+    cleanAssets : function(){
+        return del.sync(['build/assets/**']);
+    },
+    assets : function(){
+        return gulp.src(['src/assets/**'])
+            .pipe(gulp.dest('build/assets'));
+    },
 
-        var prefix = getInjectPrefix(targetFile);
-        //console.log();
 
-        var deps = getModuleDependencies(appModule);
+    cleanLess : function(){
+        return del.sync(['build/modules/**/*.less']);
+    },
+    less : function(){
+        return gulp.src('src/modules/**/*.less')
+            .pipe(plumber())
+            .pipe(less())
+            .pipe(plumber.stop())
+            .pipe(gulp.dest('build/modules'));
+    },
 
-        var entries = [],
-            keys = [],
-            files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.html');
 
-        _.forEach(files, function(filePath){
-            var dir = 'src/';
-            var relativePath = filePath.substring(filePath.indexOf(dir)+dir.length);
+    cleanJs : function(){
+        return del.sync(['build/modules/**/!(*.test).js']);
+    },
+    js : function(){
+        return gulp.src('src/modules/**/!(*.test).js')
+            .pipe(ngAnnotate())
+            .pipe(gulp.dest('build/modules'));
+    },
 
-            var arr = relativePath.split('/');
 
-            var module = arr[1];
-            var templ = arr[arr.length-1].replace('.html', '');
+    meta : function(){
+        var metaJson = fs.readFileSync('src/meta.json', 'utf8');
+        return gulp.src('build/modules/_meta/module.js')
+            .pipe(replace('{/*##META_JSON##*/}', metaJson))
+            .pipe(gulp.dest('build/modules/_meta'));
+    },
 
-            var key = module + "_" + templ;
+    metaAlign : function(){
+        var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
+        var bowerMeta = _.pick(meta, ['name', 'version', 'description', 'license', 'homepage']);
+        var nodeMeta = _.pick(meta, ['name', 'version', 'description', 'license', 'repository']);
 
-            key = key.toUpperCase();
+        var bowerStream = gulp.src('bower.json')
+            .pipe(jedit(bowerMeta))
+            .pipe(gulp.dest('.'));
 
-            if (_.contains(keys, key)) {
-                throw "Template key collision: more than one template with key '"+key+"'";
-            }
-            keys.push(key);
-            entries.push("  " + key + " : '" + prefix + relativePath + "'");
+        var nodeStream = gulp.src('package.json')
+            .pipe(jedit(nodeMeta))
+            .pipe(gulp.dest('.'));
+
+        return merge(bowerStream, nodeStream);
+    },
+
+
+    cleanTemplates : function(){
+        return del.sync(['build/modules/**/*.html']);
+    },
+    templates : function(){
+        return gulp.src('src/modules/**/*.html')
+            .pipe(gulp.dest('build/modules'));
+    },
+
+    templateList : function(){
+
+        var process = function(appModule, targetFile) {
+
+            var prefix = getInjectPrefix(targetFile);
+            var deps = getModuleDependencies(appModule);
+
+            var entries = [],
+                keys = [],
+                files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.html');
+
+            _.forEach(files, function(filePath){
+                var dir = 'src/';
+                var relativePath = filePath.substring(filePath.indexOf(dir)+dir.length);
+
+                var arr = relativePath.split('/');
+
+                var module = arr[1];
+                var templ = arr[arr.length-1].replace('.html', '');
+
+                var key = module + "_" + templ;
+
+                key = key.toUpperCase();
+
+                if (_.contains(keys, key)) {
+                    throw "Template key collision: more than one template with key '"+key+"'";
+                }
+                keys.push(key);
+                entries.push("  " + key + " : '" + prefix + relativePath + "'");
+            });
+
+            return gulp.src('src/_templ.js')
+                .pipe(replace('/*##TEMPLATE_LIST##*/', entries.join(',\n')))
+                .pipe(replace('##MODULE##', appModule))
+                .pipe(replace('##UPPER_MODULE##', appModule.toUpperCase()))
+                .pipe(rename('T_'+appModule.toUpperCase()+'.js'))
+                .pipe(gulp.dest('build/modules/'+appModule+'/constants'));
+        };
+
+        var meta = require('./src/meta.json');
+        var streams = [];
+        _.forEach(meta.apps, function(app){
+            streams.push(process(app.module, app.index));
         });
+        return merge.apply(this, streams);
+    },
+
+    index : function(){
+
+        var process = function(appModule, targetFile) {
+
+            var deps = getModuleDependencies(appModule);
+
+            var src = [
+                './build/modules/@('+deps.join('|')+')/*.css',
+                './build/modules/@('+deps.join('|')+')/**/*.css',
+                './build/modules/@('+deps.join('|')+')/module.js',              // first all the module definitions
+                './build/modules/@('+deps.join('|')+')/**/!(module).js'         // then all the module js files
+            ];
 
 
+            var meta = require('./src/meta.json');
+            var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
 
-        return gulp.src('src/_templ.js')
-            .pipe(replace('/*##TEMPLATE_LIST##*/', entries.join(',\n')))
-            .pipe(replace('##MODULE##', appModule))
-            .pipe(replace('##UPPER_MODULE##', appModule.toUpperCase()))
-            .pipe(rename('T_'+appModule.toUpperCase()+'.js'))
-            .pipe(gulp.dest('build/modules/'+appModule+'/constants'));
-    };
-
-
-    var meta = require('./src/meta.json');
-    var streams = [];
-
-    _.forEach(meta.apps, function(app){
-
-        streams.push(process(app.module, app.index));
-    });
-
-    return merge.apply(this, streams);
-
-});
-
-gulp.task('meta', ['js'], function(){
-
-    var metaJson = fs.readFileSync('src/meta.json', 'utf8');
-    return gulp.src('build/modules/_meta/module.js')
-        .pipe(replace('{/*##META_JSON##*/}', metaJson))
-        .pipe(gulp.dest('build/modules/_meta'));
-
-});
-
-gulp.task('templates', ['clean'],function(){
-
-    return gulp.src([
-        'src/modules/**/*.html'
-    ]).pipe(gulp.dest('build/modules'));
-
-});
-
-gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-list', 'js'],function(){
+            var otherMains = _.without(_.pluck(meta.apps, 'module'), appModule);
+            otherMains = _.intersection(otherMains, deps);
+            _.forEach(otherMains, function(otherMain){
+                var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
+                vendor.head.dev = _.uniq(vendor.head.dev.concat(otherVendor.head.dev));
+                vendor.head.prod = _.uniq(vendor.head.prod.concat(otherVendor.head.prod));
+                vendor.body.dev = _.uniq(vendor.body.dev.concat(otherVendor.body.dev));
+                vendor.body.prod = _.uniq(vendor.body.prod.concat(otherVendor.body.prod));
+            });
 
 
-    var buildAppIndex = function(appModule, targetFile) {
+            return gulp.src('src/index.html')
+                .pipe(rename(targetFile))
+                .pipe(replace('##APP_MAIN_MODULE##', appModule))
+                .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', targetFile))
+                .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', targetFile))
+                .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', targetFile))
 
-
-
-        var deps = getModuleDependencies(appModule);
-
-        var src = [
-            './build/modules/@('+deps.join('|')+')/*.css',
-            './build/modules/@('+deps.join('|')+')/**/*.css',
-            './build/modules/@('+deps.join('|')+')/module.js',              // first all the module definitions
-            './build/modules/@('+deps.join('|')+')/**/!(module).js'         // then all the module js files
-        ];
-
+                .pipe(gulp.dest('build'));
+        };
 
 
         var meta = require('./src/meta.json');
-        var vendor = _.where(meta.apps, { module : appModule})[0].vendor;
-
-        var otherMains = _.without(_.pluck(meta.apps, 'module'), appModule);
-        otherMains = _.intersection(otherMains, deps);
-        _.forEach(otherMains, function(otherMain){
-            var otherVendor =  _.where(meta.apps, { module : otherMain})[0].vendor;
-            vendor.head.dev = _.uniq(vendor.head.dev.concat(otherVendor.head.dev));
-            vendor.head.prod = _.uniq(vendor.head.prod.concat(otherVendor.head.prod));
-            vendor.body.dev = _.uniq(vendor.body.dev.concat(otherVendor.body.dev));
-            vendor.body.prod = _.uniq(vendor.body.prod.concat(otherVendor.body.prod));
+        var streams = [];
+        _.forEach(meta.apps, function(app){
+            streams.push(process(app.module, app.index));
         });
+        return merge.apply(this, streams);
+    }
+};
 
 
-        return gulp.src('src/index.html')
-            .pipe(rename(targetFile))
-            .pipe(replace('##APP_MAIN_MODULE##', appModule))
-            .pipe(injectIntoIndex(src, '<!-- inject:{{ext}} -->', targetFile))
-            .pipe(injectIntoIndex(vendor.head.dev, '<!-- vendor:head:{{ext}} -->', targetFile))
-            .pipe(injectIntoIndex(vendor.body.dev, '<!-- vendor:body:{{ext}} -->', targetFile))
 
-            .pipe(gulp.dest('build'));
-    };
+gulp.task('clean', ['jshint'], task.clean);
+gulp.task('vendor', ['clean'], task.vendor);
+gulp.task('assets', ['clean'], task.assets);
+gulp.task('less', ['clean'], task.less);
+gulp.task('js', ['clean'], task.js);
+gulp.task('template-list', ['js'], task.templateList);
+gulp.task('templates', ['clean'], task.templates);
+gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-list', 'js'], task.index);
 
-
-    var meta = require('./src/meta.json');
-    var streams = [];
-
-    _.forEach(meta.apps, function(app){
-        streams.push(buildAppIndex(app.module, app.index));
-    });
-
-    return merge.apply(this, streams);
-
-});
-
-
-gulp.task('meta-align', ['js'], function(){
-    var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
-    var bowerMeta = _.pick(meta, ['name', 'version', 'description', 'license', 'homepage']);
-    var nodeMeta = _.pick(meta, ['name', 'version', 'description', 'license', 'repository']);
-
-    var bowerStream = gulp.src('bower.json')
-        .pipe(jedit(bowerMeta))
-        .pipe(gulp.dest('.'));
-
-    var nodeStream = gulp.src('package.json')
-        .pipe(jedit(nodeMeta))
-        .pipe(gulp.dest('.'));
-
-    return merge(bowerStream, nodeStream);
-});
+gulp.task('meta', ['js'], task.meta);
+gulp.task('meta-align', ['js'], task.metaAlign);
 
 
 
 gulp.task('build', ['clean', 'index', 'vendor', 'less', 'templates', 'template-list', 'js']);
-
-
 gulp.task('dev', ['build', 'meta-align', 'ngdoc', 'karma']);
 
 
@@ -686,20 +692,51 @@ gulp.task('ngdoc', function() {
 //0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
 
 // works in dev mode
-gulp.task('watch', ['dev'], function(){
+gulp.task('watch', ['build'], function(){
 
-    watch('src/**/*.less')
-        .pipe(less())
-        .pipe(gulp.dest('build/modules'));
 
-    watch('src/modules/**/*.js')
-        .pipe(gulp.dest('build/modules'));
+    watch('src/**/*.less', function(){
+        try {
+            task.cleanLess();
+            task.less();
+            task.index();
+        } catch (e) {
+            console.log(e);
+        }
+    });
 
-    watch('src/modules/**/*.html')
-        .pipe(gulp.dest('build/modules'));
 
-    watch('src/assets/**/*')
-        .pipe(gulp.dest('build/assets'));
+    watch('src/modules/**/*.js', function(){
+        try {
+            task.cleanJs();
+            task.js();
+            task.index();
+        } catch (e) {
+            console.log(e);
+        }
+    });
+
+
+    watch('src/modules/**/*.html', function(){
+        try {
+            task.cleanTemplates();
+            task.templates();
+            task.templateList();
+            task.index();
+        } catch (e) {
+            console.log(e);
+        }
+    });
+  
+
+    watch('src/assets/**/*', function(){
+        try {
+            task.cleanAssets();
+            task.assets();
+        } catch (e) {
+            console.log(e);
+        }
+    });
 
 });
 

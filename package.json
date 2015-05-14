@@ -30,6 +30,7 @@
     "gulp-ng-annotate": "~0.5.2",
     "gulp-ngdocs": "^0.2.10",
     "gulp-param": "~0.6.3",
+    "gulp-plumber": "^1.0.0",
     "gulp-rename": "^1.2.2",
     "gulp-replace": "^0.5.3",
     "gulp-shell": "^0.4.1",
