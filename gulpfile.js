@@ -145,7 +145,7 @@ gulp.task('less', ['clean'],function(){
         'src/modules/**/*.less'
     ])
         .pipe(less())
-        .pipe(gulp.dest('build/styles'));
+        .pipe(gulp.dest('build/modules'));
 });
 
 
@@ -243,14 +243,14 @@ gulp.task('index', ['vendor', 'assets', 'less', 'templates', 'meta', 'template-l
 
 
 
+        var deps = getModuleDependencies(appModule);
 
         var src = [
-            './build/styles/*.css',
-            './build/styles/**/*.css'
+            './build/modules/@('+deps.join('|')+')/*.css',
+            './build/modules/@('+deps.join('|')+')/**/*.css',
+            './build/modules/@('+deps.join('|')+')/module.js',              // first all the module definitions
+            './build/modules/@('+deps.join('|')+')/**/!(module).js'         // then all the module js files
         ];
-
-
-        var deps = getModuleDependencies(appModule);
 
         src.push('./build/modules/@('+deps.join('|')+')/module.js');        // all the module definitions
         src.push('./build/modules/@('+deps.join('|')+')/**/!(module).js');  // all the module js files
@@ -532,15 +532,31 @@ gulp.task('js-prod', ['html2js-prod', 'dev'], function(){
 
 gulp.task('css-prod', ['dev'], function(){
 
-    return gulp.src([
-        'build/styles/*.css',
-        'build/styles/**/*.css'
-    ])
-        .pipe(concat('styles.min.css'))
-        .pipe(minifyCss())
-        .pipe(gulp.dest('build/css'))
-        .pipe(buster())
-        .pipe(gulp.dest('.'));
+    var process = function(appModule, targetFile) {
+
+        var deps = getModuleDependencies(appModule);
+
+        var src = [
+            './build/modules/@('+deps.join('|')+')/**/*.css'
+        ];
+
+        return gulp.src(src)
+            .pipe(concat(appModule+'.min.css'))
+            .pipe(minifyCss())
+            .pipe(gulp.dest('build/css'))
+            .pipe(buster())
+            .pipe(gulp.dest('.'));
+    };
+
+
+    var meta = require('./src/meta.json');
+    var streams = [];
+
+    _.forEach(meta.apps, function(app){
+        streams.push(process(app.module, app.index));
+    });
+
+    return merge.apply(this, streams);
 
 });
 
@@ -552,7 +568,7 @@ gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'],function(){
     var buildAppIndex = function(appModule, targetFile) {
 
         var src = [
-            './build/css/*.min.css',
+            './build/css/' + appModule + '.min.css',
             './build/js/' + appModule + '.min.js'
         ];
 
@@ -671,7 +687,7 @@ gulp.task('watch', ['dev'], function(){
 
     watch('src/**/*.less')
         .pipe(less())
-        .pipe(gulp.dest('build/styles'));
+        .pipe(gulp.dest('build/modules'));
 
     watch('src/modules/**/*.js')
         .pipe(gulp.dest('build/modules'));

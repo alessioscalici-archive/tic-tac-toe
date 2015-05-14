@@ -1,5 +1,5 @@
 {
-  "version": "0.0.0",
+  "version": "0.0.1-build.1",
   "name": "ui-base",
   "description": "A build configuration for Angular 1.3.x projects",
   "license": "MIT",
@@ -7,35 +7,30 @@
   "repository": "https://github.com/sefvef/ui-base",
   "apps": [
     {
-      "module" : "main",
-      "index" : "index.html",
-      "vendor" : {
-
-        "head" : {
-          "dev" : [
+      "module": "main",
+      "index": "index.html",
+      "vendor": {
+        "head": {
+          "dev": [
             "./build/vendor/html5-boilerplate/css/normalize.css",
             "./build/vendor/html5-boilerplate/css/main.css",
             "./build/vendor/html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
           ],
-
-          "prod" : [
+          "prod": [
             "./build/vendor/html5-boilerplate/css/normalize.css",
             "./build/vendor/html5-boilerplate/css/main.css",
             "./build/vendor/html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
           ]
-
         },
-        "body" : {
-
-          "dev" : [
+        "body": {
+          "dev": [
             "./build/vendor/angular/angular.js",
             "./build/vendor/angular-ui-router/release/angular-ui-router.js",
             "./build/vendor/angular-ui-utils/validate.js",
             "./build/vendor/angular-messages/angular-messages.js",
             "./build/vendor/ngstorage/ngStorage.js"
           ],
-
-          "prod" : [
+          "prod": [
             "./build/vendor/angular/angular.min.js",
             "./build/vendor/angular-ui-router/release/angular-ui-router.min.js",
             "./build/vendor/angular-ui-utils/validate.min.js",
@@ -46,21 +41,20 @@
       }
     },
     {
-      "module" : "test",
-      "index" : "test/index.html",
-      "vendor" : {
-
-        "head" : {
-          "dev" : [],
-          "prod" : []
+      "module": "test",
+      "index": "test/index.html",
+      "vendor": {
+        "head": {
+          "dev": [],
+          "prod": []
         },
-        "body" : {
-          "dev" : [
+        "body": {
+          "dev": [
             "./build/vendor/angular/angular.js",
             "./build/vendor/angular-ui-router/release/angular-ui-router.js",
             "./build/vendor/ngstorage/ngStorage.js"
           ],
-          "prod" : [
+          "prod": [
             "./build/vendor/angular/angular.min.js",
             "./build/vendor/angular-ui-router/release/angular-ui-router.min.js",
             "./build/vendor/ngstorage/ngStorage.min.js"
