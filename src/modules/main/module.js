@@ -1,16 +1,20 @@
 /*jshint strict: false */
 /**
  * @ngdoc overview
- * @name myApp
+ * @name main
  *
  * @description
- * The example ng-build-base example module
+ * The main app module, it defines application-wide configurations as routes, translations, constants etc.
  *
  * @requires _meta
- * @requires ngRoute
+ * @requires ui.router
+ * @requires sample
+ * 
  */
 angular.module('main', [
     '_meta', // auto-generated constant with development metadata
-    'ui.router'
+    'ui.router',
+
+    'sample' // the sample module
 ]);
 

@@ -13,5 +13,4 @@ angular.module('test').config(function ($stateProvider, $urlRouterProvider, T_TE
 		})
 	;
 
-
 });
