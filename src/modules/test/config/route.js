@@ -1,4 +1,4 @@
-angular.module('test').config(function ($stateProvider, $urlRouterProvider, T_TEST) {
+angular.module('Test').config(function ($stateProvider, $urlRouterProvider, T_TEST) {
 	'use strict';
 	
 

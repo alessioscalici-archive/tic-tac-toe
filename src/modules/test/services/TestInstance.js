@@ -1,4 +1,4 @@
-angular.module('test').service('TestInstance', function(){
+angular.module('Test').service('TestInstance', function(){
     'use strict';
     var TestInstance = function (name){
         this.name = name;

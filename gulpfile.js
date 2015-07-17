@@ -136,6 +136,14 @@ var forEachApp = function(func){
     });
     return merge.apply(this, streams);
 };
+var forEachAppNoStream = function(func){
+    var meta = require('./src/meta.json');
+    var res = [];
+    _.forEach(meta.apps, function(app){
+        res.push(func(app));
+    });
+    return res;
+};
 
 
 
@@ -203,7 +211,7 @@ var task = {
     },
 
     vendor : function(){
-        return gulp.src(['src/vendor/**'])
+        return gulp.src(['src/vendor/**', 'src/vendor-static/**'])
             .pipe(gulp.dest('build/vendor'));
     },
 
@@ -250,7 +258,9 @@ var task = {
 
     js : function(){
         return gulp.src('src/modules/**/!(*.test).js')
+            .pipe(plumber())
             .pipe(ngAnnotate())
+            .pipe(plumber.stop())
             .pipe(gulp.dest('build/modules'));
     },
 
@@ -541,44 +551,61 @@ gulp.task('ngdoc', function() {
 });
 
 
-
-gulp.task('karma', ['build'],function(){
-
-    var meta = require('./src/meta.json');
-    var vendor = _.where(meta.apps, { module : 'main'})[0].vendor;
-
-    var vendorFiles = vendor.head.dev.concat(vendor.body.dev);
-
-    // keep only .js files
-    vendorFiles = _.filter(vendorFiles, function(file){
-        return file.match(/\.js$/);
-    });
-
-    // transforms ./build in build
-    vendorFiles = _.map(vendorFiles, function(file){
-        return file.substring(2);
-    });
+gulp.task('karma', ['build'], function(){
 
 
-    var testFiles = vendorFiles.concat([
-        'build/vendor/angular-mocks/angular-mocks.js',
-        'build/modules/*.js',
-        'build/modules/**/*.js',
-        'build/modules/**/MOCK.test.js', // then, include the mocks provider
-        'src/modules/**/*.test.js'       // then, include the test specs
-    ]);
+    var process = function (app) {
 
-    // Be sure to return the stream
-    return gulp.src(testFiles, {read:false})
-        .pipe(karma({
-            configFile: 'karma.conf.js',
-            action: 'run'
-        }))
-        .on('error', function(err) {
-            // Make sure failed tests cause gulp to exit non-zero
-            throw err;
+        if (app.module === 'Test' )
+            return;
+
+    
+        var meta = require('./src/meta.json');
+        var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
+
+        var vendorFiles = vendor.head.dev.concat(vendor.body.dev);
+
+        // keep only .js files
+        vendorFiles = _.filter(vendorFiles, function(file){
+            return file.match(/\.js$/);
         });
 
+        // transforms ./build in build
+        vendorFiles = _.map(vendorFiles, function(file){
+            return file.substring(2);
+        });
+
+        vendorFiles.push('build/vendor/angular-mocks/angular-mocks.js');
+
+
+        var testFiles = vendorFiles;
+
+        testFiles.push('build/modules/_mock/!(*.test).js');
+
+        var deps = getModuleDependencies(app.module);
+        _.forEach(deps, function(dep){
+            testFiles.push('build/modules/'+dep+'/!(*.test).js');
+            testFiles.push('build/modules/'+dep+'/**/!(*.test).js');
+            testFiles.push('src/modules/'+dep+'/**/MOCK.test.js');
+            testFiles.push('src/modules/'+dep+'/**/*.test.js');
+        });
+
+        
+        // Be sure to return the stream
+        return gulp.src(testFiles, {read:false})
+            .pipe(karma({
+                configFile: 'karma/' + app.module + '.conf.js',
+                action: 'run'
+            }))
+            .on('error', function(err) {
+                // Make sure failed tests cause gulp to exit non-zero
+                throw err;
+            });
+        
+    };
+
+    forEachAppNoStream(process);
+    
 });
 
 
@@ -635,7 +662,7 @@ gulp.task('watch', ['build'], function(){
         try {
         //    task.cleanLess();
             task.less()
-            .on('end', task.index)
+            .on('end', task.index);
         } catch (e) {
             console.log(e);
         }
@@ -647,7 +674,7 @@ gulp.task('watch', ['build'], function(){
            // task.cleanJs();
             task.js()
         //    .on('end', task.templateList)
-            .on('end', task.index)
+            .on('end', task.index);
         } catch (e) {
             console.log(e);
         }
@@ -659,7 +686,7 @@ gulp.task('watch', ['build'], function(){
          //   task.cleanTemplates();
             task.templates()
             .on('end', task.templateList)
-            .on('end', task.index)
+            .on('end', task.index);
         } catch (e) {
             console.log(e);
         }

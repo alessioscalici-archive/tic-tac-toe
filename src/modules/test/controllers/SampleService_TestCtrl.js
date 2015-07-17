@@ -1,5 +1,5 @@
 
-angular.module('test').controller('SampleService_TestCtrl', function ($scope, TestInstance, SampleService){
+angular.module('Test').controller('SampleService_TestCtrl', function ($scope, TestInstance, SampleService){
   "use strict";
 
 
