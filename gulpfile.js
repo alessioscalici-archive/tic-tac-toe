@@ -304,6 +304,12 @@ var task = {
 
     meta : function(){
         var metaJson = fs.readFileSync('src/meta.json', 'utf8');
+
+        // delete infos about vendors
+        var metaObject = JSON.parse(metaJson);
+        delete metaObject.apps;
+        metaJson = JSON.stringify(metaObject);
+        
         return gulp.src('build/modules/_meta/module.js')
             .pipe(replace('{/*##META_JSON##*/}', metaJson))
             .pipe(gulp.dest('build/modules/_meta'));
