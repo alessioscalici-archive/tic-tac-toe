@@ -12,30 +12,30 @@
       "vendor": {
         "head": {
           "dev": [
-            "./build/vendor/html5-boilerplate/css/normalize.css",
-            "./build/vendor/html5-boilerplate/css/main.css",
-            "./build/vendor/html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
+            "html5-boilerplate/css/normalize.css",
+            "html5-boilerplate/css/main.css",
+            "html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
           ],
           "prod": [
-            "./build/vendor/html5-boilerplate/css/normalize.css",
-            "./build/vendor/html5-boilerplate/css/main.css",
-            "./build/vendor/html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
+            "html5-boilerplate/css/normalize.css",
+            "html5-boilerplate/css/main.css",
+            "html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"
           ]
         },
         "body": {
           "dev": [
-            "./build/vendor/angular/angular.js",
-            "./build/vendor/angular-ui-router/release/angular-ui-router.js",
-            "./build/vendor/angular-ui-utils/validate.js",
-            "./build/vendor/angular-messages/angular-messages.js",
-            "./build/vendor/ngstorage/ngStorage.js"
+            "angular/angular.js",
+            "angular-ui-router/release/angular-ui-router.js",
+            "angular-ui-utils/validate.js",
+            "angular-messages/angular-messages.js",
+            "ngstorage/ngStorage.js"
           ],
           "prod": [
-            "./build/vendor/angular/angular.min.js",
-            "./build/vendor/angular-ui-router/release/angular-ui-router.min.js",
-            "./build/vendor/angular-ui-utils/validate.min.js",
-            "./build/vendor/angular-messages/angular-messages.min.js",
-            "./build/vendor/ngstorage/ngStorage.min.js"
+            "angular/angular.min.js",
+            "angular-ui-router/release/angular-ui-router.min.js",
+            "angular-ui-utils/validate.min.js",
+            "angular-messages/angular-messages.min.js",
+            "ngstorage/ngStorage.min.js"
           ]
         }
       }
@@ -50,14 +50,14 @@
         },
         "body": {
           "dev": [
-            "./build/vendor/angular/angular.js",
-            "./build/vendor/angular-ui-router/release/angular-ui-router.js",
-            "./build/vendor/ngstorage/ngStorage.js"
+            "angular/angular.js",
+            "angular-ui-router/release/angular-ui-router.js",
+            "ngstorage/ngStorage.js"
           ],
           "prod": [
-            "./build/vendor/angular/angular.min.js",
-            "./build/vendor/angular-ui-router/release/angular-ui-router.min.js",
-            "./build/vendor/ngstorage/ngStorage.min.js"
+            "angular/angular.min.js",
+            "angular-ui-router/release/angular-ui-router.min.js",
+            "ngstorage/ngStorage.min.js"
           ]
         }
       }

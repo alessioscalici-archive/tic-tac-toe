@@ -129,7 +129,7 @@ var getModuleDependencies = function(moduleName){
 
 
 var forEachApp = function(func){
-    var meta = require('./src/meta.json');
+    var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
     var streams = [];
     _.forEach(meta.apps, function(app){
         streams.push(func(app));
@@ -137,7 +137,7 @@ var forEachApp = function(func){
     return merge.apply(this, streams);
 };
 var forEachAppNoStream = function(func){
-    var meta = require('./src/meta.json');
+    var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
     var res = [];
     _.forEach(meta.apps, function(app){
         res.push(func(app));
@@ -211,7 +211,23 @@ var task = {
     },
 
     vendor : function(){
-        return gulp.src(['src/vendor/**', 'src/vendor-static/**'])
+
+        var files = [],
+            addFiles = function(obj){
+                _.forEach(obj, function(path){
+                    files.push('src/vendor/*' + path);
+                    files.push('src/vendor-static/*' + path);
+                });
+            };
+
+        forEachAppNoStream(function(app) {
+            addFiles(app.vendor.head.dev);
+            addFiles(app.vendor.head.prod);
+            addFiles(app.vendor.body.dev);
+            addFiles(app.vendor.body.prod);
+        });
+
+        return gulp.src(files)
             .pipe(gulp.dest('build/vendor'));
     },
 
@@ -397,8 +413,21 @@ var task = {
             ];
 
 
-            var meta = require('./src/meta.json');
+            var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
             var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
+
+
+            var mapVendorPath = function(obj) {
+                return _.map(obj, function(path){
+                    return './build/vendor/' + path;
+                });
+            };
+            vendor.head.dev = mapVendorPath(vendor.head.dev);
+            vendor.head.prod = mapVendorPath(vendor.head.prod);
+            vendor.body.dev = mapVendorPath(vendor.body.dev);
+            vendor.body.prod = mapVendorPath(vendor.body.prod);
+
+
 
             var otherMains = _.without(_.pluck(meta.apps, 'module'), app.module);
             otherMains = _.intersection(otherMains, deps);
@@ -436,7 +465,7 @@ var task = {
 
             var deps = getModuleDependencies(app.module);
 
-            var meta = require('./src/meta.json');
+            var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
             var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
 
             var otherMains = _.without(_.pluck(meta.apps, 'module'), app.module);
@@ -566,7 +595,7 @@ gulp.task('karma', ['build'], function(){
             return;
 
     
-        var meta = require('./src/meta.json');
+        var meta = JSON.parse(fs.readFileSync('./src/meta.json','utf-8'));
         var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
 
         var vendorFiles = vendor.head.dev.concat(vendor.body.dev);
@@ -576,12 +605,12 @@ gulp.task('karma', ['build'], function(){
             return file.match(/\.js$/);
         });
 
-        // transforms ./build in build
+        // add directory
         vendorFiles = _.map(vendorFiles, function(file){
-            return file.substring(2);
+            return 'build/vendor/' + file;
         });
 
-        vendorFiles.push('build/vendor/angular-mocks/angular-mocks.js');
+        vendorFiles.push('src/vendor/angular-mocks/angular-mocks.js');
 
 
         var testFiles = vendorFiles;
