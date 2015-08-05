@@ -28,7 +28,8 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     esprima = require('esprima'),
     watch = require('gulp-watch'),
     plumber = require('gulp-plumber'),
-    rename = require('gulp-rename')
+    rename = require('gulp-rename'),
+    jade = require('gulp-jade')
     ;
 
 
@@ -352,8 +353,14 @@ var task = {
         return del.sync(['build/modules/**/*.html']);
     },
     templates : function(){
-        return gulp.src('src/modules/**/*.html')
+        var htmlStream = gulp.src('src/modules/**/*.html')
             .pipe(gulp.dest('build/modules'));
+
+        var jadeStream = gulp.src('src/modules/**/*.jade')
+            .pipe(jade())
+            .pipe(gulp.dest('build/modules'));
+
+        return merge(htmlStream, jadeStream);
     },
 
     templateList : function(){
@@ -365,20 +372,15 @@ var task = {
 
             var entries = [],
                 keys = [],
-                files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.html');
+                files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.jade');
 
             _.forEach(files, function(filePath){
-                var dir = 'src/';
-                var relativePath = filePath.substring(filePath.indexOf(dir)+dir.length);
-
-                var arr = relativePath.split('/');
-
-                var module = arr[1];
-                var templ = arr[arr.length-1].replace('.html', '');
-
-                var key = module + "_" + templ;
-
-                key = key.toUpperCase();
+                var dir = 'src/',
+                    relativePath = filePath.substring(filePath.indexOf(dir)+dir.length).replace(/\.(html|jade)/, '.html'),
+                    arr = relativePath.split('/'),
+                    module = arr[1],
+                    templ = arr[arr.length-1].replace(/\.(html|jade)/, ''),
+                    key = (module + "_" + templ).toUpperCase();
 
                 if (_.contains(keys, key)) {
                     throw "Template key collision: more than one template with key '"+key+"'";
@@ -478,6 +480,16 @@ var task = {
                 vendor.body.prod = _.uniq(vendor.body.prod.concat(otherVendor.body.prod));
             });
 
+            var mapVendorPath = function(obj) {
+                return _.map(obj, function(path){
+                    return './build/vendor/' + path;
+                });
+            };
+            vendor.head.dev = mapVendorPath(vendor.head.dev);
+            vendor.head.prod = mapVendorPath(vendor.head.prod);
+            vendor.body.dev = mapVendorPath(vendor.body.dev);
+            vendor.body.prod = mapVendorPath(vendor.body.prod);
+
             var str = fs.readFileSync('./busters.json', "utf8");
             var hashes = JSON.parse(str);
 
@@ -492,6 +504,70 @@ var task = {
         };
 
         return forEachApp(process);
+    },
+
+    karma : function () {
+
+
+        var process = function (app) {
+
+            if (app.module === 'Test' )
+                return;
+
+            var isProdBuild = fs.existsSync('./build/js/' + app.module + '.min.js' );
+
+
+            var meta = JSON.parse(fs.readFileSync('./src/meta.json','utf-8'));
+            var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
+
+            var vendorFiles = isProdBuild ? vendor.head.prod.concat(vendor.body.prod) : vendor.head.dev.concat(vendor.body.dev);
+
+            // keep only .js files
+            vendorFiles = _.filter(vendorFiles, function(file){
+                return file.match(/\.js$/);
+            });
+
+            // add directory
+            vendorFiles = _.map(vendorFiles, function(file){
+                return 'build/vendor/' + file;
+            });
+
+            vendorFiles.push('src/vendor/angular-mocks/angular-mocks.js');
+
+
+            var testFiles = vendorFiles;
+
+            testFiles.push('src/modules/_mock/!(*.test).js');
+
+            if (isProdBuild)
+                testFiles.push('./build/js/' + app.module + '.min.js');
+
+            var deps = getModuleDependencies(app.module);
+            _.forEach(deps, function(dep) {
+                if (!isProdBuild) {
+                    testFiles.push('build/modules/' + dep + '/*.js');
+                    testFiles.push('build/modules/' + dep + '/**/*.js');
+                }
+                testFiles.push('src/modules/'+dep+'/**/MOCK.test.js');
+                testFiles.push('src/modules/'+dep+'/**/*.test.js');
+            });
+
+
+            // Be sure to return the stream
+            return gulp.src(testFiles, {read:false})
+                .pipe(karma({
+                    configFile: 'karma/' + app.module + '.conf.js',
+                    action: 'run'
+                }))
+                .on('error', function(err) {
+                    // Make sure failed tests cause gulp to exit non-zero
+                    throw err;
+                });
+
+        };
+
+        forEachAppNoStream(process);
+
     }
 };
 
@@ -513,16 +589,16 @@ gulp.task('meta', ['js'], task.meta);
 gulp.task('meta-align', ['js'], task.metaAlign);
 
 gulp.task('build', ['clean', 'index', 'vendor', 'less', 'templates', 'template-list', 'js']);
-gulp.task('dev', ['build', 'meta-align', 'ngdoc', 'karma']);
+gulp.task('dev', ['build', 'meta-align', 'ngdoc'], task.karma);
 
 
     // PROD specific
 
-gulp.task('html2js-prod', ['dev'], task.html2jsProd);
-gulp.task('js-prod', ['html2js-prod', 'dev'], task.jsProd);
-gulp.task('css-prod', ['dev'], task.cssProd);
-gulp.task('index-prod', ['js-prod', 'css-prod', 'dev'], task.indexProd);
-gulp.task('prod', ['js-prod', 'css-prod', 'index-prod', 'dev'], function(version){
+gulp.task('html2js-prod', ['build'], task.html2jsProd);
+gulp.task('js-prod', ['html2js-prod', 'build'], task.jsProd);
+gulp.task('css-prod', ['build'], task.cssProd);
+gulp.task('index-prod', ['js-prod', 'css-prod', 'build'], task.indexProd);
+gulp.task('prod', ['js-prod', 'css-prod', 'index-prod', 'build', 'meta-align', 'ngdoc'], function(version){
 
     del.sync([
         'build/styles',
@@ -559,6 +635,8 @@ gulp.task('prod', ['js-prod', 'css-prod', 'index-prod', 'dev'], function(version
         .pipe(bump(options))
         .pipe(gulp.dest('src'));
 
+    task.karma();
+
     return merge (curStream, srcStream);
 });
 
@@ -585,63 +663,6 @@ gulp.task('ngdoc', function() {
         .pipe(gulp.dest('docs'));
 });
 
-
-gulp.task('karma', ['build'], function(){
-
-
-    var process = function (app) {
-
-        if (app.module === 'Test' )
-            return;
-
-    
-        var meta = JSON.parse(fs.readFileSync('./src/meta.json','utf-8'));
-        var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
-
-        var vendorFiles = vendor.head.dev.concat(vendor.body.dev);
-
-        // keep only .js files
-        vendorFiles = _.filter(vendorFiles, function(file){
-            return file.match(/\.js$/);
-        });
-
-        // add directory
-        vendorFiles = _.map(vendorFiles, function(file){
-            return 'build/vendor/' + file;
-        });
-
-        vendorFiles.push('src/vendor/angular-mocks/angular-mocks.js');
-
-
-        var testFiles = vendorFiles;
-
-        testFiles.push('build/modules/_mock/!(*.test).js');
-
-        var deps = getModuleDependencies(app.module);
-        _.forEach(deps, function(dep){
-            testFiles.push('build/modules/'+dep+'/!(*.test).js');
-            testFiles.push('build/modules/'+dep+'/**/!(*.test).js');
-            testFiles.push('src/modules/'+dep+'/**/MOCK.test.js');
-            testFiles.push('src/modules/'+dep+'/**/*.test.js');
-        });
-
-        
-        // Be sure to return the stream
-        return gulp.src(testFiles, {read:false})
-            .pipe(karma({
-                configFile: 'karma/' + app.module + '.conf.js',
-                action: 'run'
-            }))
-            .on('error', function(err) {
-                // Make sure failed tests cause gulp to exit non-zero
-                throw err;
-            });
-        
-    };
-
-    forEachAppNoStream(process);
-    
-});
 
 
 
