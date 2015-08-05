@@ -241,11 +241,11 @@ var task = {
     },
 
     cleanLess : function(){
-        return del.sync(['build/modules/**/*.less']);
+        return del.sync(['build/modules/**/*.@(css|less)']);
     },
 
     less : function(){
-        return gulp.src('src/modules/**/*.less')
+        return gulp.src('src/modules/**/*.@(css|less)')
             .pipe(plumber())
             .pipe(less())
             .pipe(plumber.stop())
