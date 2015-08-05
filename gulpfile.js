@@ -242,11 +242,11 @@ var task = {
     },
 
     cleanLess : function(){
-        return del.sync(['build/modules/**/*.less']);
+        return del.sync(['build/modules/**/*.@(css|less)']);
     },
 
     less : function(){
-        return gulp.src('src/modules/**/*.less')
+        return gulp.src('src/modules/**/*.@(css|less)')
             .pipe(plumber())
             .pipe(less())
             .pipe(plumber.stop())
@@ -357,7 +357,9 @@ var task = {
             .pipe(gulp.dest('build/modules'));
 
         var jadeStream = gulp.src('src/modules/**/*.jade')
+            .pipe(plumber())
             .pipe(jade())
+            .pipe(plumber.stop())
             .pipe(gulp.dest('build/modules'));
 
         return merge(htmlStream, jadeStream);
@@ -372,7 +374,7 @@ var task = {
 
             var entries = [],
                 keys = [],
-                files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.jade');
+                files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.@(html|jade)');
 
             _.forEach(files, function(filePath){
                 var dir = 'src/',
