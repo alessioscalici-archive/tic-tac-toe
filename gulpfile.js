@@ -28,7 +28,8 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     esprima = require('esprima'),
     watch = require('gulp-watch'),
     plumber = require('gulp-plumber'),
-    rename = require('gulp-rename')
+    rename = require('gulp-rename'),
+    jade = require('gulp-jade')
     ;
 
 
@@ -352,8 +353,16 @@ var task = {
         return del.sync(['build/modules/**/*.html']);
     },
     templates : function(){
-        return gulp.src('src/modules/**/*.html')
+        var htmlStream = gulp.src('src/modules/**/*.html')
             .pipe(gulp.dest('build/modules'));
+
+        var jadeStream = gulp.src('src/modules/**/*.jade')
+            .pipe(plumber())
+            .pipe(jade())
+            .pipe(plumber.stop())
+            .pipe(gulp.dest('build/modules'));
+
+        return merge(htmlStream, jadeStream);
     },
 
     templateList : function(){
@@ -365,14 +374,14 @@ var task = {
 
             var entries = [],
                 keys = [],
-                files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.html');
+                files = glob.sync('./src/modules/@('+deps.join('|')+')/**/*.@(html|jade)');
 
             _.forEach(files, function(filePath){
                 var dir = 'src/',
-                    relativePath = filePath.substring(filePath.indexOf(dir)+dir.length),
+                    relativePath = filePath.substring(filePath.indexOf(dir)+dir.length).replace(/\.(html|jade)/, '.html'),
                     arr = relativePath.split('/'),
                     module = arr[1],
-                    templ = arr[arr.length-1].replace('.html', ''),
+                    templ = arr[arr.length-1].replace(/\.(html|jade)/, ''),
                     key = (module + "_" + templ).toUpperCase();
 
                 if (_.contains(keys, key)) {
@@ -730,7 +739,7 @@ gulp.task('watch', ['build'], function(){
     });
 
 
-    watch('src/modules/**/*.html', function(){
+    watch('src/modules/**/*.@(html|jade)', function(){
         try {
             //   task.cleanTemplates();
             task.templates()
@@ -752,7 +761,3 @@ gulp.task('watch', ['build'], function(){
     });
 
 });
-
-
-
-
