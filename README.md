@@ -9,7 +9,7 @@ framework and a bunch of development and testing tools.
 
 Features:
 
-- LESS, CSS, Javascript and HTML minification (prod mode)
+- LESS, CSS, Javascript, Jade and HTML minification (prod mode)
 - Cache busting
 - Version bumping
 - Automatic script / stylesheet injection in the index file
