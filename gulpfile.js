@@ -133,17 +133,11 @@ var forEachApp = function(func){
     var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
     var streams = [];
     _.forEach(meta.apps, function(app){
-        streams.push(func(app));
+        var res = func(app);
+        if (res)
+            streams.push(res);
     });
     return merge.apply(this, streams);
-};
-var forEachAppNoStream = function(func){
-    var meta = JSON.parse(fs.readFileSync('src/meta.json', 'utf8'));
-    var res = [];
-    _.forEach(meta.apps, function(app){
-        res.push(func(app));
-    });
-    return res;
 };
 
 
@@ -221,11 +215,13 @@ var task = {
                 });
             };
 
-        forEachAppNoStream(function(app) {
+        forEachApp(function(app) {
             addFiles(app.vendor.head.dev);
             addFiles(app.vendor.head.prod);
             addFiles(app.vendor.body.dev);
             addFiles(app.vendor.body.prod);
+            addFiles(app.vendor.async.dev);
+            addFiles(app.vendor.async.prod);
         });
 
         return gulp.src(files)
@@ -522,7 +518,9 @@ var task = {
             var meta = JSON.parse(fs.readFileSync('./src/meta.json','utf-8'));
             var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
 
-            var vendorFiles = isProdBuild ? vendor.head.prod.concat(vendor.body.prod) : vendor.head.dev.concat(vendor.body.dev);
+            var vendorFiles = isProdBuild ?
+                vendor.head.prod.concat(vendor.body.prod).concat(vendor.async.prod) :
+                vendor.head.dev.concat(vendor.body.dev).concat(vendor.async.dev);
 
             // keep only .js files
             vendorFiles = _.filter(vendorFiles, function(file){
@@ -568,7 +566,7 @@ var task = {
 
         };
 
-        forEachAppNoStream(process);
+        forEachApp(process);
 
     }
 };

@@ -25,18 +25,16 @@
         "body": {
           "dev": [
             "angular/angular.js",
-            "angular-ui-router/release/angular-ui-router.js",
-            "angular-ui-utils/validate.js",
-            "angular-messages/angular-messages.js",
-            "ngstorage/ngStorage.js"
+            "angular-ui-router/release/angular-ui-router.js"
           ],
           "prod": [
             "angular/angular.min.js",
-            "angular-ui-router/release/angular-ui-router.min.js",
-            "angular-ui-utils/validate.min.js",
-            "angular-messages/angular-messages.min.js",
-            "ngstorage/ngStorage.min.js"
+            "angular-ui-router/release/angular-ui-router.min.js"
           ]
+        },
+        "async": {
+          "dev": ["angular-mocks/angular-mocks.js"],
+          "prod": []
         }
       }
     },
@@ -51,14 +49,16 @@
         "body": {
           "dev": [
             "angular/angular.js",
-            "angular-ui-router/release/angular-ui-router.js",
-            "ngstorage/ngStorage.js"
+            "angular-ui-router/release/angular-ui-router.js"
           ],
           "prod": [
             "angular/angular.min.js",
-            "angular-ui-router/release/angular-ui-router.min.js",
-            "ngstorage/ngStorage.min.js"
+            "angular-ui-router/release/angular-ui-router.min.js"
           ]
+        },
+        "async": {
+          "dev": [],
+          "prod": []
         }
       }
     }
