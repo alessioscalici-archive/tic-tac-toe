@@ -748,6 +748,22 @@ gulp.task('watch', ['build'], function(){
         }
     });
 
+    watch('src/meta.json', function(){
+        try {
+            task.vendor()
+                .on('end', task.index);
+        } catch (e) {
+            console.log(e);
+        }
+    });
+
+    watch('src/index.@(html|jade)', function(){
+        try {
+            task.index();
+        } catch (e) {
+            console.log(e);
+        }
+    });
 
     watch('src/assets/**/*', function(){
         try {
