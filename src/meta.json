@@ -33,7 +33,7 @@
           ]
         },
         "async": {
-          "dev": ["angular-mocks/angular-mocks.js"],
+          "dev": [],
           "prod": []
         }
       }
