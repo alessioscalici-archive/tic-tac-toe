@@ -1,4 +1,4 @@
-# ui-base — a complete build configuration for AngularJS projects
+# ui-base — A complete Gulp configuration for AngularJS projects
 
 This project is a build configuration for AngularJS projects.
 It's based on **angular-seed**, and adds a full set of tools to be ready to work
