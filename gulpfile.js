@@ -12,7 +12,6 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     replace = require('gulp-replace'),
     del = require('del'),
     watch = require('gulp-watch'),
-    karma = require('gulp-karma'),
     plato = require('plato'),
     jshint = require('gulp-jshint'),
     jscs = require('gulp-jscs'),
@@ -26,10 +25,10 @@ var gulp = require('gulp-param')(require('gulp'), process.argv),
     html2js = require('gulp-html2js'),
     series = require('stream-series'),
     esprima = require('esprima'),
-    watch = require('gulp-watch'),
     plumber = require('gulp-plumber'),
     rename = require('gulp-rename'),
-    jade = require('gulp-jade')
+    jade = require('gulp-jade'),
+    KarmaServer = require('karma').Server
     ;
 
 
@@ -504,71 +503,91 @@ var task = {
         return forEachApp(process);
     },
 
-    karma : function () {
+  karma : function (done) {
 
 
-        var process = function (app) {
+    var process = function (app) {
 
-            if (app.module === 'Test' )
-                return;
-
-            var isProdBuild = fs.existsSync('./build/js/' + app.module + '.min.js' );
+      var isProdBuild = fs.existsSync('./build/js/' + app.module + '.min.js' );
 
 
-            var meta = JSON.parse(fs.readFileSync('./src/meta.json','utf-8'));
-            var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
+      var meta = JSON.parse(fs.readFileSync('./src/meta.json','utf-8'));
+      var vendor = _.where(meta.apps, { module : app.module})[0].vendor;
 
-            var vendorFiles = isProdBuild ?
-                vendor.head.prod.concat(vendor.body.prod).concat(vendor.async.prod) :
-                vendor.head.dev.concat(vendor.body.dev).concat(vendor.async.dev);
+      var vendorFiles = isProdBuild ?
+        vendor.head.prod.concat(vendor.body.prod).concat(vendor.async.prod) :
+        vendor.head.dev.concat(vendor.body.dev).concat(vendor.async.dev);
 
-            // keep only .js files
-            vendorFiles = _.filter(vendorFiles, function(file){
-                return file.match(/\.js$/);
-            });
+      // keep only .js files
+      vendorFiles = _.filter(vendorFiles, function(file){
+        return file.match(/\.js$/);
+      });
 
-            // add directory
-            vendorFiles = _.map(vendorFiles, function(file){
-                return 'build/vendor/' + file;
-            });
+      // add directory
+      vendorFiles = _.map(vendorFiles, function(file){
+        return 'build/vendor/' + file;
+      });
 
-            vendorFiles.push('src/vendor/angular-mocks/angular-mocks.js');
-
-
-            var testFiles = vendorFiles;
-
-            testFiles.push('src/modules/_mock/!(*.test).js');
-
-            if (isProdBuild)
-                testFiles.push('./build/js/' + app.module + '.min.js');
-
-            var deps = getModuleDependencies(app.module);
-            _.forEach(deps, function(dep) {
-                if (!isProdBuild) {
-                    testFiles.push('build/modules/' + dep + '/*.js');
-                    testFiles.push('build/modules/' + dep + '/**/*.js');
-                }
-                testFiles.push('src/modules/'+dep+'/**/MOCK.test.js');
-                testFiles.push('src/modules/'+dep+'/**/*.test.js');
-            });
+      vendorFiles.push('src/vendor/angular-mocks/angular-mocks.js');
 
 
-            // Be sure to return the stream
-            return gulp.src(testFiles, {read:false})
-                .pipe(karma({
-                    configFile: 'karma/' + app.module + '.conf.js',
-                    action: 'run'
-                }))
-                .on('error', function(err) {
-                    // Make sure failed tests cause gulp to exit non-zero
-                    throw err;
-                });
+      var testFiles = vendorFiles;
 
-        };
 
-        forEachApp(process);
 
-    }
+      if (isProdBuild) {
+        testFiles.push('./build/js/' + app.module + '.min.js');
+      } else {
+
+
+        var deps = getModuleDependencies(app.module);
+        _.forEach(deps, function(dep) {
+          testFiles.push('build/modules/' + dep + '/module.js');
+          testFiles.push('build/modules/' + dep + '/**/!(*.test).js');
+        });
+      }
+      testFiles.push('src/modules/_mock/module.js');
+      testFiles.push('src/modules/**/*.test.js');
+
+
+
+      // Be sure to return the stream
+      return new KarmaServer({
+
+        basePath : './',
+        files: testFiles,
+        frameworks: ['jasmine'],
+        browsers : ['PhantomJS'],
+        reporters : ['dots','coverage'],
+        plugins : [
+          'karma-chrome-launcher',
+          'karma-firefox-launcher',
+          'karma-phantomjs-launcher',
+          'karma-jasmine',
+          'karma-junit-reporter',
+          'karma-coverage'
+        ],
+        preprocessors: {
+          'build/modules/**/*.js': ['coverage'] // all non-test files in feat folder
+        },
+        junitReporter : {
+          outputFile: 'test_out/unit.xml',
+          suite: 'unit'
+        },
+        coverageReporter: {
+          type : 'html',
+          dir : './report',
+          subdir : 'coverage',
+          includeAllSources: true
+        },
+        singleRun: true
+      }, done).start();
+
+    };
+
+    forEachApp(process);
+
+  }
 };
 
 
@@ -646,6 +665,8 @@ gulp.task('prod', ['js-prod', 'css-prod', 'index-prod', 'build', 'meta-align', '
 //0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
 //                                     TEST / REPORTS TASKS
 //0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000//
+
+gulp.task('karma', task.karma);
 
 
 gulp.task('ngdoc', function() {
