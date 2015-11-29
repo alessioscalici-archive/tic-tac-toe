@@ -1,10 +1,10 @@
 {
   "version": "0.0.0",
-  "name": "ui-base",
-  "description": "A build configuration for Angular 1.4.x projects",
+  "name": "tic-tac-toe",
+  "description": "A tic-tac-toe demo app",
   "license": "MIT",
-  "homepage": "https://github.com/sefvef/ui-base",
-  "repository": "https://github.com/sefvef/ui-base",
+  "homepage": "https://github.com/alessioscalici/tic-tac-toe",
+  "repository": "https://github.com/alessioscalici/tic-tac-toe",
   "apps": [
     {
       "module": "Main",
@@ -24,36 +24,18 @@
         },
         "body": {
           "dev": [
+            "jquery/dist/jquery.js",
             "angular/angular.js",
-            "angular-ui-router/release/angular-ui-router.js"
+            "angular-messages/angular-messages.js",
+            "angular-ui-router/release/angular-ui-router.js",
+            "ngstorage/ngStorage.js"
           ],
           "prod": [
+            "jquery/dist/jquery.min.js",
             "angular/angular.min.js",
-            "angular-ui-router/release/angular-ui-router.min.js"
-          ]
-        },
-        "async": {
-          "dev": [],
-          "prod": []
-        }
-      }
-    },
-    {
-      "module": "Test",
-      "index": "test/index.html",
-      "vendor": {
-        "head": {
-          "dev": [],
-          "prod": []
-        },
-        "body": {
-          "dev": [
-            "angular/angular.js",
-            "angular-ui-router/release/angular-ui-router.js"
-          ],
-          "prod": [
-            "angular/angular.min.js",
-            "angular-ui-router/release/angular-ui-router.min.js"
+            "angular-messages/angular-messages.min.js",
+            "angular-ui-router/release/angular-ui-router.min.js",
+            "ngstorage/ngStorage.min.js"
           ]
         },
         "async": {

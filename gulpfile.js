@@ -241,7 +241,7 @@ var task = {
     },
 
     less : function(){
-        return gulp.src('src/modules/**/*.@(css|less)')
+        return gulp.src('src/modules/**/main.@(css|less)')
             .pipe(plumber())
             .pipe(less())
             .pipe(plumber.stop())
@@ -532,7 +532,6 @@ var task = {
 
 
       var testFiles = vendorFiles;
-
 
 
       if (isProdBuild) {

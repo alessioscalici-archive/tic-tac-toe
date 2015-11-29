@@ -1,0 +1,15 @@
+
+#status-bar
+  h1 History
+  .button-bar
+    button(ui-sref='startgame') New game
+
+#history
+  .entry(ng-repeat='entry in history')
+    span.date {{entry.date | date:'short'}}
+    span.name-x(ng-class='{winner: entry.winner == "X"}') {{entry.players.X.name}}
+    span vs
+    span.name-o(ng-class='{winner: entry.winner == "O"}') {{entry.players.O.name}}
+    span :
+    span.draw(ng-show='entry.result=="draw"') DRAW
+    span.win(ng-show='entry.result=="win"' ng-class='{"name-o": entry.winner == "O", "name-x": entry.winner == "X"}') {{entry.players[entry.winner].name}} WON

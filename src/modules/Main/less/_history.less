@@ -1,0 +1,32 @@
+#history {
+  .entry {
+
+    &:nth-child(odd) {
+      background-color: fade(@brand-color, 20%);
+    }
+
+    span {
+      margin: 0 .5em;
+    }
+
+    .date {
+      font-size: .9em;
+      color: #444;
+    }
+
+    .name-x {
+      color: @symbol-x-color;
+      font-weight: bold;
+    }
+
+    .name-o {
+      color: @symbol-o-color;
+      font-weight: bold;
+    }
+
+    .draw {
+      font-weight: bold;
+    }
+
+  }
+}

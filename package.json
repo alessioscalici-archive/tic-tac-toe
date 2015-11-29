@@ -1,22 +1,19 @@
 {
-  "name": "ui-base",
+  "name": "tic-tac-toe",
   "private": true,
   "version": "0.0.0",
-  "description": "A build configuration for Angular 1.4.x projects",
-  "repository": "https://github.com/sefvef/ui-base",
+  "description": "A tic-tac-toe demo app",
+  "repository": "https://github.com/alessioscalici/tic-tac-toe",
   "license": "MIT",
   "main": "server.js",
-  "dependencies": {},
-  "scripts": {
-    "gulp": "gulp",
-    "prod": "gulp prod",
-    "prod-patch": "gulp prod -v patch",
-    "prod-minor": "gulp prod -v minor",
-    "prod-major": "gulp prod -v major",
-    "dev": "gulp dev",
-    "test": "gulp karma",
-    "e2e": "protractor e2e-tests/conf/local.conf.js",
-    "postinstall": "bower install",
+  "dependencies": {}, "scripts": {
+    "prod": "node ./node_modules/gulp/bin/gulp.js prod",
+    "prod-patch": "node ./node_modules/gulp/bin/gulp.js prod -v patch",
+    "prod-minor": "node ./node_modules/gulp/bin/gulp.js prod -v minor",
+    "prod-major": "node ./node_modules/gulp/bin/gulp.js prod -v major",
+    "dev": "node ./node_modules/gulp/bin/gulp.js dev",
+    "test": "node ./node_modules/gulp/bin/gulp.js karma",
+    "postinstall": "node ./node_modules/bower/bin/bower install",
     "start": "node server.js"
   },
   "devDependencies": {
@@ -62,7 +59,6 @@
     "merge-stream": "^1.0.0",
     "phantomjs": "^1.9.19",
     "plato": "^1.5.0",
-    "protractor": "^3.0.0",
     "shelljs": "^0.5.3",
     "stream-series": "^0.1.1",
     "underscore": "^1.8.3"

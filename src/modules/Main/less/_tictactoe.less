@@ -1,0 +1,102 @@
+#status-bar {
+  height: 40px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: @brand-color;
+  margin-bottom: 20px;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+
+  button {
+    background-color: transparent;
+    border: 2px solid white;
+    border-radius: .5em;
+    color: white;
+    font-size: 1.1em;
+    margin: 0 .5em;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, .2);
+    }
+  }
+}
+
+
+#ttt-container {
+  display: flex;
+}
+
+
+.ttt {
+
+  margin: 0 auto;
+
+  .ttt-row {
+    display: flex;
+    flex-direction: row;
+
+    // apply border to second row
+    &:nth-child(2) {
+      border-top: @ttt-grid-border;
+      border-bottom: @ttt-grid-border;
+    }
+
+    .ttt-col {
+
+      height: 100px;
+      width: 100px;
+
+      // apply border to second column
+      &:nth-child(2) {
+        border-left: @ttt-grid-border;
+        border-right: @ttt-grid-border;
+      }
+
+      &.highlight {
+        background: @highlight-color;
+      }
+
+
+      .symbol-o,.symbol-x {
+        &.transparent {
+          opacity: .5;
+        }
+      }
+
+      .symbol-o {
+        margin: 5px;
+        border: @symbol-width solid @symbol-o-color;
+        border-radius: 50%;
+        height: 70px;
+        width: 70px;
+      }
+
+      .symbol-x {
+        height: 80px;
+        width: 80px;
+        margin: 0 auto;
+        position: relative;
+        transform: rotate(45deg);
+        &>div{
+          position: absolute;
+          background: @symbol-x-color;
+          border-radius: 5px;
+        }
+        &>.diag1 {
+          top: 45px;
+          width: 100px;
+          height: @symbol-width;
+        }
+        &>.diag2 {
+          left: 45px;
+          width: @symbol-width;
+          height: 100px;
+        }
+      }
+    }
+  }
+
+}

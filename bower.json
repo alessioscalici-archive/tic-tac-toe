@@ -1,8 +1,8 @@
 {
-  "name": "ui-base",
-  "description": "A build configuration for Angular 1.4.x projects",
+  "name": "tic-tac-toe",
+  "description": "A tic-tac-toe demo app",
   "version": "0.0.0",
-  "homepage": "https://github.com/sefvef/ui-base",
+  "homepage": "https://github.com/alessioscalici/tic-tac-toe",
   "license": "MIT",
   "private": true,
   "dependencies": {
@@ -10,6 +10,9 @@
     "angular-loader": "~1.4.8",
     "angular-mocks": "~1.4.8",
     "html5-boilerplate": "~5.2.0",
-    "angular-ui-router": "~0.2.15"
+    "angular-ui-router": "~0.2.15",
+    "jquery": "~2.1.4",
+    "angular-messages": "~1.4.8",
+    "ngstorage": "~0.3.10"
   }
 }

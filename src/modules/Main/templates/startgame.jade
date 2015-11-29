@@ -1,0 +1,15 @@
+#name-form
+  h1 tic-tac-toe!
+  form(name='playerForm' novalidate)
+    .form-section
+      label Player X name:
+      input(ng-model='formData.X.name' name='playerX' required)
+      div(ng-messages='playerForm.playerX.$error' ng-show='playerForm.$submitted')
+        .error-msg(ng-message='required') The name is required!
+    .form-section
+      label Player O name:
+      input(ng-model='formData.O.name' name='playerO' required)
+      div(ng-messages='playerForm.playerO.$error' ng-show='playerForm.$submitted')
+        .error-msg(ng-message='required') The name is required!
+    .button-bar
+      button#start-button(type='submit' ng-click='playerForm.$valid && startGame()') Start game
